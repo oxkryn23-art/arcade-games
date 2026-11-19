@@ -23,7 +23,11 @@ async function waitFor(fn, ms = 20000, what = 'condition') {
 }
 
 // A scripted player: plays a random legal move every step (or none when `idle`), records everything it was sent.
-function player(name, { id = pid(), idle = false } = {}) {
+// pick(gameId, legal): the move to play (default: a random legal one). A Shootout between two random players can run
+// for minutes, so the long-game tests give one side a decisive habit (shoot when loaded, the other keeps reloading).
+const shooter = (gameId, legal) => (gameId === 'shootout' ? (legal.includes('shoot') ? 'shoot' : 'reload') : null);
+const reloader = (gameId, legal) => (gameId === 'shootout' && legal.includes('reload') ? 'reload' : null);
+function player(name, { id = pid(), idle = false, pick = null } = {}) {
   const s = io(URL, { auth: { pid: id }, transports: ['websocket'], forceNew: true });
   const p = { s, id, name, found: null, rounds: [], results: [], end: null, events: [], idle };
   s.onAny((ev, data) => p.events.push([ev, data]));
@@ -34,7 +38,7 @@ function player(name, { id = pid(), idle = false } = {}) {
     p.rounds.push(d);
     if (p.idle) return;
     const g = games[p.found.gameId], legal = g.legalMoves(d.state, p.found.you);
-    const move = legal[Math.floor(Math.random() * legal.length)];
+    const move = pick?.(p.found.gameId, legal) ?? legal[Math.floor(Math.random() * legal.length)];
     setTimeout(() => s.emit('match:move', { matchId: d.matchId, move }, () => {}), 30 + Math.random() * 80);
   });
   p.ready = new Promise((r) => s.on('connect', r));
@@ -44,7 +48,7 @@ const close = (...ps) => ps.forEach((p) => p.s.close());
 
 async function testPvpAllGames() {
   await Promise.all(Object.keys(games).map(async (gameId) => {
-    const a = player('QuietOtter'), b = player('CoralKite');
+    const a = player('QuietOtter', { pick: shooter }), b = player('CoralKite', { pick: reloader });
     await Promise.all([a.ready, b.ready]);
     const ra = await emit(a.s, 'queue:join', { games: [gameId], name: a.name, look });
     assert(ra.ok, ra.error);
@@ -66,7 +70,7 @@ async function testPvpAllGames() {
 
 async function testDemoAllGames() {
   await Promise.all(Object.keys(games).map(async (gameId) => {
-    const a = player('SneakyPretzel');
+    const a = player('SneakyPretzel', { pick: shooter });
     await a.ready;
     const r = await emit(a.s, 'demo:start', { gameId, name: a.name, look });
     assert(r.ok, r.error);

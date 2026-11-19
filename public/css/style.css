@@ -284,9 +284,14 @@ dialog input:focus { outline: 3px solid var(--focus); outline-offset: 1px; }
 .cust-name label { margin: 0 0 6px; }
 .cust-name .note { margin-top: 6px; font-size: 13px; }
 .cust-name .claim-row .btn { width: 44px; height: 44px; padding: 0; }
-.customizer #custErr { margin: 0; }
+.customizer .modal-foot { flex-wrap: nowrap; align-items: center; }
+.customizer #custErr {
+  flex: 1 1 auto; min-width: 0; margin: 0; font-size: 13px; line-height: 1.25; text-align: left;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.customizer .modal-foot .btn { flex: none; white-space: nowrap; }
 .customizer .modal-foot .btn { min-width: 150px; }
-@media (max-width: 640px) {
+@media (max-width: 640px) and (min-height: 561px) {
   .customizer .modal-body { grid-template-columns: minmax(0, 1fr); }
   .cust-stage { position: relative; height: 220px; }
   .customizer .modal-foot .btn { flex: 1; min-width: 0; }

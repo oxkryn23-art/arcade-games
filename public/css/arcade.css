@@ -446,19 +446,25 @@ input, select, textarea { background: var(--ui-cream-2); color: var(--ui-ink); b
   .modal-foot { padding: 7px 16px 8px; }
   .modal-foot .btn { padding: 8px 16px; font-size: 16px; }
 
-  /* the avatar picker: the figure on the left (it stays while the options scroll), the options on the right */
+  /* the avatar picker fits the height with no scrolling: a narrow figure panel on the left; on the right each option
+     row is its label beside one line of choices (eight hairstyles included), then the nickname on one line */
   .customizer { width: min(780px, calc(100vw - 24px)); }
-  .customizer .modal-body { grid-template-columns: minmax(150px, 34%) minmax(0, 1fr); gap: 10px 16px; padding-top: 10px; }
-  .customizer .cust-stage { position: sticky; top: 0; height: max(160px, calc(100dvh - 150px)); }
-  .customizer .cust-side { gap: 10px; }
-  .customizer .cust-opts { gap: 8px; }
-  .customizer .opt-list { gap: 6px; }
+  .customizer .modal-body { grid-template-columns: minmax(120px, 24%) minmax(0, 1fr); gap: 8px 12px; padding-top: 8px; padding-bottom: 8px; align-items: stretch; }
+  .customizer .cust-stage { position: relative; align-self: stretch; height: auto; min-height: 150px; }
+  .customizer .cust-side { gap: 8px; align-content: center; }
+  .customizer .cust-opts { gap: 6px; }
+  .customizer .opt-row { grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 8px; }
+  .customizer .opt-label { font-size: 10px; letter-spacing: .06em; line-height: 1.15; }
+  .customizer .opt-list { flex-wrap: nowrap; gap: 5px; }
   .customizer .opt { padding: 2px; }
-  .customizer .opt-dot { width: 24px; height: 24px; }
-  .customizer .opt-hair { width: 36px; height: 36px; }
-  .customizer .cust-name { padding-top: 8px; }
-  .customizer .cust-name .claim-row .btn { width: 40px; height: 40px; }
-  .customizer dialog input, .customizer input { padding: 7px 10px; }
+  .customizer .opt-dot { width: 22px; height: 22px; }
+  .customizer .opt-hair { width: 30px; height: 30px; }
+  .customizer .cust-name { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 8px; padding-top: 8px; }
+  .customizer .cust-name label { margin: 0; font-size: 12px; }
+  .customizer .cust-name .note { display: none; }
+  .customizer .cust-name .claim-row .btn { width: 36px; height: 36px; }
+  .customizer #custErr:empty { display: none; }
+  .customizer dialog input, .customizer input { padding: 6px 10px; }
   .customizer .modal-foot .btn { min-width: 0; flex: 0 1 auto; }
 
   /* the queue: a smaller figure and timer, so the box fits the height */
@@ -493,4 +499,19 @@ input, select, textarea { background: var(--ui-cream-2); color: var(--ui-ink); b
 /* the shortest phones (375 px and less): the side panel's title goes, so its buttons stay in view */
 @media (orientation: landscape) and (max-height: 400px) {
   .play-side > h2 { display: none; }
+}
+
+/* the smallest landscape phones (about 568 x 320): the avatar picker a notch tighter still, so it never scrolls */
+@media (orientation: landscape) and (max-height: 340px) {
+  .customizer .modal-body { padding-top: 6px; padding-bottom: 6px; }
+  .customizer .cust-opts { gap: 4px; }
+  .customizer .opt-list { gap: 4px; }
+  .customizer .opt-dot { width: 20px; height: 20px; }
+  .customizer .opt-hair { width: 26px; height: 26px; }
+  .customizer .cust-name { padding-top: 6px; }
+  .customizer .cust-name .claim-row .btn { width: 32px; height: 32px; }
+  .customizer input { padding: 4px 8px; }
+  .customizer #custErr { font-size: 11px; line-height: 1.2; }
+  .customizer .modal-foot { padding-top: 5px; padding-bottom: 6px; }
+  .customizer .modal-foot .btn { padding: 7px 12px; font-size: 15px; }
 }

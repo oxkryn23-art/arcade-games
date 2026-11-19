@@ -560,7 +560,7 @@
   function openCustomizer({ first = false } = {}) {
     cust = { draft: A.get(), first, stage: null };
     $('#custNick').value = myName();
-    $('#custErr').textContent = '';
+    $('#custErr').textContent = ''; $('#custErr').title = '';
     renderCust();
     cust.stage = DuelFigures.stage($('#custRig'), cust.draft, { mood: 'GEN-6' });
     $('#dlgCustomize').open || $('#dlgCustomize').showModal();
@@ -579,7 +579,7 @@
   function custSave() {
     const n = DuelNames.clean($('#custNick').value);
     const bad = DuelNames.problem(n);
-    if (bad) { $('#custErr').textContent = bad; return; }
+    if (bad) { $('#custErr').textContent = bad; $('#custErr').title = bad; $('#custNick').focus(); return; }
     LS.set('duel_name', n);
     A.set(cust.draft);
     DuelSound.play('ui-lock');

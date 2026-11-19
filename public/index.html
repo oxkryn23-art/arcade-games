@@ -197,10 +197,9 @@
           <div class="claim-row"><input id="custNick" maxlength="18" autocomplete="off" spellcheck="false"><button type="button" class="btn btn-ghost btn-sm" id="custDice" aria-label="Random nickname" title="Random nickname"><span class="ico" data-icon="dices"></span></button></div>
           <p class="note">3 to 18 characters: letters, digits, spaces, _ . -</p>
         </div>
-        <p class="note err" id="custErr"></p>
       </div>
     </div>
-    <footer class="modal-foot"><button type="button" class="btn btn-ghost" id="custRandom">Surprise me</button><button class="btn btn-play" id="custSave"><span class="ico" data-icon="check"></span>Save</button></footer>
+    <footer class="modal-foot"><p class="note err" id="custErr" aria-live="polite"></p><button type="button" class="btn btn-ghost" id="custRandom">Surprise me</button><button class="btn btn-play" id="custSave"><span class="ico" data-icon="check"></span>Save</button></footer>
   </dialog>
 
   <!-- Challenge a friend (server/challenges.js): pick the games, get a one-time link to send. On top: only your latest
