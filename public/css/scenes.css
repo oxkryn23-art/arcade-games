@@ -1,0 +1,197 @@
+/* Game scenes: frame, background art + colored light, overlay pieces and game controls. Every color is a theme
+   token. */
+
+/* The host fills the space it is given; the frame keeps the scene's aspect ratio inside it. */
+.scene-host { position: relative; width: 100%; height: 100%; min-height: 0; container-type: size; display: grid; place-items: center; }
+.scene-frame {
+  position: relative; overflow: hidden; border-radius: var(--r-lg); container-type: inline-size;
+  width: min(100cqw, 177.78cqh); background: var(--bg);
+  box-shadow: var(--lift), inset 0 0 0 1px var(--line);
+}
+.scene-frame.is-mini { border-radius: 10px; box-shadow: none; }
+.scene-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.scene-svg .camera { will-change: transform; }
+/* hand icons in the controls (in your skin tone, public/js/figures/rig.js handIcon) */
+.figure-hand-wrap { display: inline-grid; place-items: center; width: 100%; height: 100%; }
+.figure-hand-wrap .ico { width: 100%; height: 100%; }
+
+/* Backgrounds: the scene's code-drawn art (kit.js background) in its own SVG; until the art has loaded a token
+   gradient stands in. */
+.scene-bg { position: absolute; inset: 0; background: radial-gradient(70% 60% at 50% 75%, var(--surface-2), var(--bg) 70%); }
+.scene-bg-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* Colored light on top of the art: player glow on the player's side, opponent glow on the opponent's side.
+   Scenes move the two lights with K.glow() (Penalty swaps them with the roles). */
+.scene-glow { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; }
+.scene-glow i {
+  position: absolute; width: 70%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%;
+  transition: left .5s ease, top .5s ease, opacity .3s;
+}
+.scene-glow .glow-you { background: radial-gradient(closest-side, color-mix(in srgb, var(--player) 22%, transparent), transparent); }
+.scene-glow .glow-opp { background: radial-gradient(closest-side, color-mix(in srgb, var(--opponent) 20%, transparent), transparent); }
+.scene-frame.is-mini .scene-glow i { opacity: .8; }
+
+/* Overlay: HTML pieces placed in viewBox percentages, scaled with the frame width. */
+.scene-overlay { position: absolute; inset: 0; pointer-events: none; font-size: clamp(11px, 1.35cqw, 20px); }
+.scene-overlay > * { position: absolute; transform: translate(-50%, -50%); }
+.scene-frame.is-mini .scene-label { display: none; }
+
+.scene-plus {
+  font-family: var(--font-display); font-weight: 800; font-size: 1.6em; color: var(--side, var(--text)); white-space: nowrap; z-index: 3;
+  text-shadow: 0 0 .8em var(--side-glow, transparent);
+}
+.scene-plus.you { --side: var(--player); --side-glow: var(--player-glow); }
+.scene-plus.opp { --side: var(--opponent); --side-glow: var(--opponent-glow); }
+
+.scene-punch {
+  font-family: var(--font-display); font-weight: 800; font-size: clamp(28px, 6.4cqw, 104px); letter-spacing: -.03em; line-height: 1;
+  color: var(--text); white-space: nowrap; pointer-events: none; z-index: 3;
+  text-shadow: 0 .04em .3em color-mix(in srgb, var(--bg) 80%, transparent);
+}
+.scene-punch.you { color: var(--player); text-shadow: 0 0 .45em var(--player-glow), 0 .04em .3em var(--bg); }
+.scene-punch.opp { color: var(--opponent); text-shadow: 0 0 .45em var(--opponent-glow), 0 .04em .3em var(--bg); }
+.scene-punch.gold { color: var(--money); text-shadow: 0 0 .45em var(--money-glow), 0 .04em .3em var(--bg); }
+.scene-punch.small { font-size: clamp(18px, 4cqw, 58px); }
+
+.scene-label {
+  padding: .26em .95em .3em; border-radius: 999px; background: var(--ui-cream); border: .14em solid var(--edge); box-shadow: 0 .16em 0 var(--ledge-c);
+  font-family: var(--font-display); font-weight: 700; font-size: 1.1em; white-space: nowrap; color: var(--ui-ink);
+}
+.scene-label.you { background: var(--ui-player); color: var(--ui-on-play); }
+.scene-label.opp { background: var(--ui-opponent); color: var(--ui-on-play); }
+.scene-label:empty { display: none; }
+.scene-pick {
+  width: 3.4em; height: 3.4em; padding: .3em; border-radius: 50%; background: var(--surface-1); border: 1px solid var(--player);
+  box-shadow: 0 0 0 4px var(--player-soft), 0 0 1.2em var(--player-glow); color: var(--player);
+}
+.scene-pick svg { width: 100%; height: 100%; }
+
+/* SVG text in scenes */
+.scene-svg text { font-family: var(--font-display); font-weight: 800; }
+
+/* ---------- game controls (K.buttons): a prompt chip over a panel of big icon buttons ----------
+   The look of the site (the panel color, a soft frame, a ledge shadow). States from the panel's data-state (kit.js):
+   open = pick one (hover lifts, press sinks; an illegal move is dashed and greyed), locked = the pick is blue with a
+   lock badge and the rest dim, off = waiting (everything flat and faded). On the match screen the panel is an
+   overlay at the bottom of the scene (game-ui.css); everywhere else (/dev/scenes) it simply sits under the scene. */
+.scene-controls {
+  --ctl-h: 76px; --ctl-ico: 54px; --ctl-font: 23px;
+  display: grid; justify-items: center; color: var(--ui-ink); font-family: var(--font-display);
+}
+.ctl-chip {
+  position: relative; z-index: 1; display: inline-flex; align-items: baseline; gap: 10px; max-width: calc(100% - 40px); margin-bottom: -16px;
+  padding: 5px 18px 6px; border-radius: 999px; background: var(--ui-cream); border: var(--ink-line); box-shadow: var(--ledge-sm);
+  font: 700 18px/1.15 var(--font-display); white-space: nowrap; transition: background .15s, color .15s;
+}
+.ctl-chip .ctl-prompt { flex-shrink: 0; }
+.ctl-chip .ctl-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 700 13px/1.2 var(--font-body); color: var(--ui-ink-2); }
+/* small ticks on both sides of the chip ("look here" marks) */
+.ctl-chip::before, .ctl-chip::after {
+  content: ''; position: absolute; top: 28%; width: 15px; height: 4.5px; border-radius: 3px; background: var(--ui-sun);
+  box-shadow: 0 0 0 1.5px var(--edge);
+}
+.ctl-chip::before { right: calc(100% + 8px); transform: rotate(-22deg); }
+.ctl-chip::after { left: calc(100% + 8px); transform: rotate(22deg); }
+.scene-controls[data-state="locked"] .ctl-chip { background: var(--ui-player); color: var(--ui-on-play); }
+.scene-controls[data-state="off"] .ctl-chip { background: var(--ui-cream-2); color: var(--ui-ink-2); }
+.scene-controls:not([data-state="open"]) .ctl-sub, .scene-controls:not([data-state="open"]) .ctl-chip::before, .scene-controls:not([data-state="open"]) .ctl-chip::after { display: none; }
+
+.ctl-panel {
+  width: 100%; padding: 24px 14px 14px; border-radius: 30px; background: var(--ui-cream); border: var(--ink-line);
+  box-shadow: var(--ledge), var(--float);
+}
+.ctl-row { display: flex; gap: 12px; justify-content: center; }
+.ctl {
+  position: relative; flex: 1 1 0; min-width: 0; max-width: 330px; min-height: var(--ctl-h); padding: 8px 18px;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  border: var(--ink-line); border-radius: 22px; background: var(--ui-cream); color: var(--ui-ink); box-shadow: 0 4px 0 var(--ledge-c);
+  font: 700 var(--ctl-font)/1.05 var(--font-display); text-transform: uppercase; letter-spacing: .01em;
+  transition: transform .08s ease, box-shadow .08s ease, background .15s, opacity .15s, filter .15s; touch-action: manipulation; cursor: pointer;
+}
+.ctl-icon { flex: none; display: flex; align-items: center; justify-content: center; width: var(--ctl-ico); height: var(--ctl-ico); color: var(--ui-ink); }
+.ctl-icon > svg, .ctl-icon .ico { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; object-fit: contain; overflow: visible; pointer-events: none; user-select: none; }
+.ctl-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctl:hover:not(:disabled) { background: color-mix(in srgb, var(--ui-sun) 30%, var(--ui-cream)); transform: translateY(-2px); box-shadow: 0 6px 0 var(--ledge-c); }
+.ctl:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--ledge-c); }
+.ctl:focus-visible { outline: 3px solid var(--ui-player); outline-offset: 3px; }
+/* the pick: blue (a first pick of a pair while still open, the locked pick after) */
+.ctl[aria-pressed="true"] {
+  background: var(--ui-player); color: var(--ui-on-play);
+  box-shadow: 0 4px 0 var(--ledge-c), 0 0 0 5px color-mix(in srgb, var(--ui-player) 28%, transparent);
+}
+.ctl[aria-pressed="true"]:hover:not(:disabled) { background: color-mix(in srgb, var(--ui-player) 88%, var(--ui-cream)); }
+.ctl-lock {
+  position: absolute; top: -13px; right: -9px; width: 34px; height: 34px; padding: 4px; border-radius: 50%; display: none;
+  background: var(--ui-cream); border: 2.5px solid var(--edge); box-shadow: 0 2px 0 var(--ledge-c); object-fit: contain; pointer-events: none;
+}
+.scene-controls[data-state="locked"] .ctl[aria-pressed="true"] .ctl-lock { display: block; }
+.scene-controls[data-state="locked"] .ctl[aria-pressed="true"] { cursor: default; }
+.scene-controls[data-state="locked"] .ctl:not([aria-pressed="true"]) { opacity: .42; filter: saturate(.3); box-shadow: 0 1px 0 var(--ledge-c); transform: translateY(3px); cursor: default; }
+/* an illegal move while you pick (Shootout without ammo): dashed, grey, flat */
+.scene-controls[data-state="open"] .ctl:disabled { opacity: .4; filter: grayscale(1); border-style: dashed; box-shadow: none; transform: translateY(3px); cursor: not-allowed; }
+.scene-controls[data-state="off"] .ctl { opacity: .55; filter: saturate(.5); box-shadow: 0 1px 0 var(--ledge-c); transform: translateY(3px); cursor: default; }
+@media (max-width: 860px) {
+  .scene-controls { --ctl-h: 66px; --ctl-ico: 40px; --ctl-font: 15px; }
+  .ctl-chip { margin-bottom: -13px; padding: 4px 14px 5px; font-size: 15px; border-width: 2px; }
+  .ctl-chip .ctl-sub { display: none; }
+  .ctl-chip::before, .ctl-chip::after { width: 12px; height: 4px; }
+  .ctl-panel { padding: 18px 8px 8px; border-radius: 24px; border-width: 2px; }
+  .ctl-row { gap: 6px; }
+  .ctl { flex-direction: column; gap: 2px; padding: 5px 4px 7px; border-width: 2px; border-radius: 18px; box-shadow: 0 3px 0 var(--ledge-c); }
+  .ctl-lock { width: 28px; height: 28px; top: -10px; right: -6px; border-width: 2px; padding: 3px; }
+}
+@media (max-width: 860px) and (max-height: 760px) {
+  .scene-controls { --ctl-h: 58px; --ctl-ico: 34px; --ctl-font: 14px; }
+  .ctl-panel { padding: 16px 6px 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ctl, .ctl:hover:not(:disabled), .ctl:active:not(:disabled) { transform: none; transition: none; }
+}
+
+/* ---------- Shootout (public/js/scenes/shootout.js) ---------- */
+/* the fences stand on the street art: they fade in with the background art (they would float on the placeholder) */
+.sho-frame .sho-fence { transition: opacity .4s; }
+.sho-frame .scene-bg:not(.has-img) ~ .scene-svg .sho-fence { opacity: 0; }
+
+/* ---------- RPS + RPS Minus One: the pick reminder ---------- */
+.rps-pick { padding: .45em; }
+
+/* ---------- RPS: the punch text over the dark room wall gets a light outline ---------- */
+.rps-frame .scene-punch {
+  text-shadow: .05em 0 0 var(--flash), -.05em 0 0 var(--flash), 0 .05em 0 var(--flash), 0 -.05em 0 var(--flash),
+    .035em .035em 0 var(--flash), -.035em .035em 0 var(--flash), .035em -.035em 0 var(--flash), -.035em -.035em 0 var(--flash), 0 .1em 0 var(--outline);
+}
+/* ---------- Penalty ---------- */
+/* the punch text over the bright stadium art: a cartoon outline (the art's ink color) keeps it readable */
+.pen-frame .scene-punch {
+  text-shadow: .045em 0 0 var(--outline), -.045em 0 0 var(--outline), 0 .045em 0 var(--outline), 0 -.045em 0 var(--outline),
+    .032em .032em 0 var(--outline), -.032em .032em 0 var(--outline), .032em -.032em 0 var(--outline), -.032em -.032em 0 var(--outline),
+    0 .09em 0 var(--outline);
+}
+.pen-frame .scene-punch.small {
+  text-shadow: .05em 0 0 var(--outline), -.05em 0 0 var(--outline), 0 .05em 0 var(--outline), 0 -.05em 0 var(--outline),
+    .035em .035em 0 var(--outline), -.035em .035em 0 var(--outline), .035em -.035em 0 var(--outline), -.035em -.035em 0 var(--outline);
+}
+/* Penalty: the outcome splash GOAL! / SAVED! / MISSED! (penalty.js splash()): light display type with an ink outline and
+   ledge like the UI, a glow in the scorer's side color */
+.pen-frame .pen-splash {
+  --side: var(--player);
+  font: 700 clamp(44px, 10.5cqw, 168px)/1 var(--font-display); letter-spacing: .01em; white-space: nowrap; pointer-events: none; z-index: 3;
+  color: var(--ui-cream); -webkit-text-stroke: .11em var(--ui-ink); paint-order: stroke fill;
+  text-shadow: 0 .07em 0 var(--ui-ink), 0 0 .35em color-mix(in srgb, var(--side) 75%, transparent), 0 0 .8em color-mix(in srgb, var(--side) 45%, transparent);
+}
+.pen-frame .pen-splash.opp { --side: var(--opponent); }
+/* Penalty: the role banner at the start of every kick turn (penalty.js roleBanner()): "YOU KICK" with the ball / "YOU
+   SAVE" with the gloves. A plate framed in your color (--player), the role word and its chip in the role's
+   accent (the same green / gold as the control panel: kick = --ui-win, save = --ui-money). Pointer-transparent. */
+.pen-frame .pen-role-banner {
+  --role-c: var(--ui-win);
+  display: inline-flex; align-items: center; gap: .32em; padding: .16em .62em .16em .2em; border-radius: 999px; z-index: 4;
+  font: 700 clamp(30px, 6.4cqw, 92px)/1 var(--font-display); letter-spacing: .02em; white-space: nowrap; pointer-events: none;
+  background: var(--ui-cream); color: var(--ui-ink); border: .07em solid var(--player);
+  box-shadow: 0 .08em 0 color-mix(in srgb, var(--player) 55%, transparent), 0 0 .5em color-mix(in srgb, var(--player) 55%, transparent);
+}
+.pen-frame .pen-role-banner.role-keep { --role-c: var(--ui-money); }
+.pen-role-banner .prb-chip { display: grid; place-items: center; width: 1.25em; height: 1.25em; border-radius: 50%; background: var(--role-c); border: .05em solid var(--ui-ink); }
+.pen-role-banner .prb-chip svg { width: 78%; height: 78%; }
+.pen-role-banner .prb-you { color: var(--player); }
+.pen-role-banner .prb-word { color: var(--role-c); }

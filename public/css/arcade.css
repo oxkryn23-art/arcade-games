@@ -1,0 +1,496 @@
+/* The page look: loaded last, over style.css, scenes.css and game-ui.css. Every color is a token (/css/theme.css,
+   server/themes.js): the --ui-cream* tokens are the panels, --ui-ink* the text on them. The look: calm frames (2-3 px)
+   with an inner highlight and a grounded ledge, quiet surfaces, --ui-play = the one call to action, --ui-player =
+   selected, --ui-money = gold. Layout per page: the home showcase, the Play page cards + side panel; components:
+   buttons with states, frames, the game cards, modals, toast, the rotate overlay and the short landscape screens. */
+
+:root {
+  --page-max: 1320px;   /* the page column (1480 px on wide screens); the bar's content follows it */
+  --frame-w: 2.5px;
+  --frame: var(--frame-w) solid var(--ui-line);
+  --frame-in: inset 0 1px 0 var(--ui-frame-hi);
+  --ledge-c: color-mix(in srgb, var(--ui-line) 70%, var(--ui-sky));
+  --ledge: 0 4px 0 var(--ledge-c);
+  --ledge-sm: 0 3px 0 var(--ledge-c);
+  --float: 0 14px 30px color-mix(in srgb, var(--ui-ink) 16%, transparent);
+  --edge: var(--ui-line);
+  --ink-line: 2px solid var(--ui-line);
+  --play-glow: color-mix(in srgb, var(--ui-play) 40%, transparent);
+  --sel-glow: color-mix(in srgb, var(--ui-player) 40%, transparent);
+  --focus: var(--ui-player);
+  /* the page backdrop: a soft light from the top, a faint cool glow low in the middle */
+  --backdrop:
+    radial-gradient(80% 50% at 50% 115%, color-mix(in srgb, var(--ui-glow) 22%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--ui-sky-2) 0%, color-mix(in srgb, var(--ui-sky-2) 60%, transparent) 30%, transparent 70%),
+    var(--ui-sky);
+  /* the header: an opaque band, a thin line across the whole viewport, a soft shadow under it */
+  --bar-bg: linear-gradient(180deg, var(--ui-frame-hi), var(--ui-cream));
+  --bar-line: linear-gradient(180deg, var(--ui-glow) 0 3px, var(--ui-frame-hi) 3px 4px, var(--ui-accent-2) 4px 6px);
+  --bar-line-h: 6px;
+  --bar-shadow: 0 14px 24px -14px color-mix(in srgb, var(--ui-ink) 40%, transparent);
+  --panel-bg: linear-gradient(180deg, var(--ui-frame-hi), var(--ui-cream) 40%);
+  --panel-shadow: var(--frame-in), var(--ledge), var(--float);
+  --head-shadow: 2px 3px 0 color-mix(in srgb, var(--ui-glow) 45%, transparent);
+}
+@media (min-width: 1600px) { :root { --page-max: 1480px; } }
+body { color: var(--ui-ink); }
+body::before { background: var(--backdrop); }
+::selection { background: color-mix(in srgb, var(--ui-play) 30%, transparent); }
+:focus-visible { outline: 3px solid var(--ui-player); outline-offset: 2px; }
+
+/* ---------- frames ---------- */
+.card-panel, .frame {
+  background: var(--panel-bg) padding-box, var(--ui-line) border-box;
+  color: var(--ui-ink); border: var(--frame-w) solid transparent; border-radius: 20px;
+  box-shadow: var(--panel-shadow);
+}
+.frame { position: relative; }
+
+/* ---------- buttons: normal / hover / pressed / disabled ---------- */
+.btn {
+  border: var(--frame-w) solid color-mix(in srgb, var(--ui-sky) 55%, var(--ui-line));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ui-frame-hi) 45%, transparent), var(--ledge);
+  transition: transform .08s ease, box-shadow .08s ease, background .12s, filter .12s;
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ui-frame-hi) 45%, transparent), 0 5px 0 var(--ledge-c); }
+.btn:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 2px 4px color-mix(in srgb, var(--shadow) 25%, transparent), 0 1px 0 var(--ledge-c); }
+.btn:disabled { opacity: 1; filter: none; cursor: not-allowed; background: var(--ui-cream-2) !important; color: color-mix(in srgb, var(--ui-ink-2) 80%, var(--ui-cream-2)) !important; box-shadow: var(--ledge-sm) !important; animation: none !important; }
+.btn-play, .btn-primary { background: var(--ui-play); color: var(--ui-on-play); border-color: color-mix(in srgb, var(--ui-play) 70%, var(--ui-ink)); }
+.btn-play:hover:not(:disabled), .btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ui-play) 90%, var(--ui-ink)); }
+.btn-ghost { background: color-mix(in srgb, var(--ui-cream) 85%, var(--ui-frame-hi)); color: var(--ui-ink); border-color: var(--ui-line); }
+.btn-ghost:hover:not(:disabled) { background: var(--ui-cream-2); }
+.btn-danger { background: color-mix(in srgb, var(--ui-opponent) 12%, var(--ui-cream)); color: var(--ui-ink); border-color: color-mix(in srgb, var(--ui-opponent) 55%, var(--ui-line)); }
+.btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--ui-opponent) 22%, var(--ui-cream)); }
+.btn-gold { background: var(--ui-money); color: var(--ui-on-play); border-color: color-mix(in srgb, var(--ui-money) 70%, var(--ui-ink)); }
+.btn-gold:hover:not(:disabled) { background: color-mix(in srgb, var(--ui-money) 88%, var(--ui-ink)); }
+.link-btn {
+  padding: 2px 0; border: 0; background: none; color: var(--ui-player); font: 700 15px/1.3 var(--font-display);
+  border-bottom: 2px solid color-mix(in srgb, var(--ui-player) 55%, transparent); cursor: pointer;
+}
+.link-btn:hover { color: var(--ui-ink); border-bottom-color: var(--ui-ink); }
+.rules-link { color: var(--ui-player); }
+
+/* ---------- top bar ---------- */
+/* the bar spans the whole viewport (its line, .topbar::after, runs edge to edge on every page, the match included);
+   its content lines up with the page column (--page-max) */
+.topbar {
+  --bar-pad: clamp(12px, 3vw, 24px);
+  --tb-btn: 46px;
+  margin: 0; max-width: none; width: 100%; padding: 14px max(var(--bar-pad), calc((100% - var(--page-max)) / 2 + var(--bar-pad)));
+  position: relative; top: 0; gap: 14px; border: 0; border-radius: 0;
+  background: var(--bar-bg); box-shadow: var(--bar-shadow);
+}
+.topbar::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: var(--bar-line-h); pointer-events: none;
+  background: var(--bar-line);
+}
+.brand { gap: 12px; position: relative; z-index: 1; align-items: baseline; }
+.brand .wordmark { font-size: 28px; }
+.brand-tag { font: 700 13px/1.25 var(--font-display); letter-spacing: .01em; color: var(--ui-ink-2); white-space: nowrap; }
+.main-nav { background: transparent; border: 0; box-shadow: none; gap: 6px; padding: 0; }
+.main-nav button { border-radius: 12px; padding: 8px 18px; color: var(--ui-ink-2); font: 600 16px/1.2 var(--font-display); border: 2px solid transparent; }
+.main-nav button:hover { background: color-mix(in srgb, var(--ui-cream-2) 80%, transparent); color: var(--ui-ink); }
+.main-nav button[aria-current="page"] { background: var(--ui-cream); color: var(--ui-ink); border-color: var(--ui-line); box-shadow: var(--frame-in), var(--ledge-sm); }
+/* The right group: your avatar (the picker) and the settings, two round buttons of one size, the same soft disc.
+   Nothing moves on hover: only a soft ring and a slightly warmer fill; the keyboard focus keeps its blue outline. */
+.topbar > .spacer { order: 1; }
+.topbar > .me-avatar, .topbar > .settings-btn { order: 2; }
+.topbar .avatar.me-avatar, .settings-btn {
+  position: relative; flex: none; width: var(--tb-btn); height: var(--tb-btn); padding: 0; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center; background: var(--ui-cream); border: 2px solid color-mix(in srgb, var(--ui-line) 75%, var(--ui-cream));
+  box-shadow: var(--ledge-sm); transition: box-shadow .12s ease, background-color .12s ease;
+}
+.topbar .avatar.me-avatar { --size: var(--tb-btn); overflow: hidden; background: var(--ui-cream-2); }
+.topbar .avatar.me-avatar:hover, .settings-btn:hover { background: color-mix(in srgb, var(--ui-cream-2) 55%, var(--ui-cream)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-line) 35%, transparent), var(--ledge-sm); }
+.settings-btn { color: var(--ui-ink); }
+.settings-btn .ico { display: grid; place-items: center; width: 52%; height: 52%; }
+.settings-btn svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; }
+.settings-btn:focus-visible, .topbar .avatar.me-avatar:focus-visible { outline: 2px solid var(--ui-player); outline-offset: 2px; }
+.avatar { background: var(--ui-cream); border-color: var(--ui-line); }
+
+/* ---------- page shell ---------- */
+.arcade-page { max-width: var(--page-max); margin: 0 auto; padding: 22px clamp(12px, 3vw, 24px) 18px; display: grid; gap: 20px; }
+.kicker { font: 700 13px/1.2 var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: var(--ui-accent-2); }
+.page-title { font: 700 clamp(30px, 3.6vw, 44px)/1.05 var(--font-display); color: var(--ui-ink); text-shadow: var(--head-shadow); }
+.page-sub { margin: 6px 0 0; color: var(--ui-ink-2); font-size: 16px; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.sec-head h2 { font-size: 24px; color: var(--ui-ink); }
+.note { color: var(--ui-ink-2); }
+.site-foot {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 6px;
+  background: transparent; border: 0; box-shadow: none; padding: 6px 2px; color: var(--ui-ink-2); font-size: 13px;
+}
+/* the footer: two short lines side by side, no separators */
+.site-foot .foot-note { display: flex; flex-wrap: wrap; gap: 4px 22px; }
+.site-foot .foot-links { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+
+/* ---------- game covers: a picture or a live still of the scene, always shown whole in a 16:10 box ----------
+   A cover box (.sc-cover in the showcase, .mc-cover, .tile-cover, .ch-gcover, .cc-cover, .rules-cover) holds either an
+   <img> or a scene host (.scene-host.cover-still, scenes.css: the 16:9 frame centered by the host's grid), so a
+   still is letterboxed in the panel color and nothing is ever cropped. */
+:is(.sc-cover, .mc-cover, .tile-cover, .ch-gcover, .cc-cover, .rules-cover) {
+  position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; background: var(--ui-cream-2);
+}
+:is(.sc-cover, .mc-cover, .tile-cover, .ch-gcover, .cc-cover, .rules-cover) > img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; transition: filter .2s;
+}
+:is(.sc-cover, .mc-cover, .tile-cover, .ch-gcover, .cc-cover, .rules-cover) > .cover-still {
+  position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; display: grid; place-items: center; transition: filter .2s;
+}
+.cover-still .scene-frame { border-radius: 0; box-shadow: none; }
+
+/* ---------- home: the showcase ---------- */
+.landing { gap: 18px; }
+.kicker-row { display: flex; justify-content: space-between; align-items: center; }
+.showcase {
+  display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 34px; align-items: stretch;
+  padding: 0 36px 0 0; border-radius: 24px; overflow: hidden;
+}
+.sc-art { position: relative; align-self: center; overflow: hidden; background: var(--ui-cream-2); border-right: 3px solid var(--ui-line); }
+.showcase.swap .sc-cover > *, .showcase.swap .sc-copy h1, .showcase.swap .sc-text { animation: sc-in .45s cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes sc-in { from { opacity: 0; transform: translateY(8px); } }
+.sc-copy { display: grid; gap: 14px; align-content: center; padding: 18px 0; }
+.sc-copy h1 { font: 700 clamp(36px, 4.4vw, 62px)/1.02 var(--font-display); color: var(--ui-ink); text-shadow: var(--head-shadow); }
+.sc-text { margin: 0; color: var(--ui-ink-2); font-size: 18px; max-width: 30ch; }
+.sc-copy .actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.sc-copy .actions .btn { white-space: nowrap; }
+.sc-copy .btn-big { font-size: 22px; padding: 14px 30px; }
+#btnPlay { min-width: 170px; font-size: 24px; }
+.sc-nav { display: flex; align-items: center; gap: 14px; }
+.sc-dots { display: flex; gap: 8px; }
+.sc-dot { width: 9px; height: 9px; padding: 0; border-radius: 99px; border: 0; background: var(--ui-line); transition: width .25s, background .25s; }
+.sc-dot[aria-pressed="true"] { width: 26px; background: var(--ui-play); }
+.landing .more { display: grid; gap: 12px; }
+.mini-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+
+/* ---------- Play page ---------- */
+.play-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.play-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 26px; align-items: start; }
+.play-games { display: grid; gap: 14px; }
+.games-count { font: 700 14px/1 var(--font-body); color: var(--ui-ink-2); margin-left: 8px; }
+.ptiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.info-note { font-size: 14px; margin: 0; }
+/* the side panel: the summary, Find an opponent (the call to action), Play vs AI, then Challenge a friend */
+.play-side { display: grid; gap: 12px; padding: 22px 22px 18px; position: sticky; top: 14px; }
+.play-side h2 { font-size: 26px; text-shadow: var(--head-shadow); }
+.side-sub { margin: -6px 0 0; color: var(--ui-ink-2); font-size: 14px; }
+.play-sum, .ch-sum {
+  display: grid; justify-items: center; align-content: center; gap: 4px; text-align: center; min-width: 0;
+  padding: 12px 12px 11px; border: 1px solid var(--ui-line); border-radius: 14px; background: color-mix(in srgb, var(--ui-cream-2) 70%, transparent);
+}
+.play-sum:empty { display: none; }
+.ss-main { font: 700 20px/1.2 var(--font-display); color: var(--ui-ink); overflow-wrap: anywhere; }
+.ch-sum .ss-main { font-size: 26px; }
+.ss-tok { font-size: 13px; font-weight: 700; color: var(--ui-ink-2); }
+.play-side .play-go, .play-side .play-ai { width: 100%; white-space: nowrap; }
+.play-go { font-size: 22px; padding: 14px 20px; }
+.play-go:not(:disabled) { animation: go-pulse 2.6s ease-in-out infinite; }
+@keyframes go-pulse { 50% { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ui-frame-hi) 45%, transparent), var(--ledge), 0 0 22px var(--play-glow); } }
+.play-go:active:not(:disabled) { transform: translateY(4px) scale(.99); animation: none; }
+.play-ai { font-size: 19px; padding: 12px 20px; }
+.go-note { text-align: center; font-size: 13px; margin: -4px 0 0; }
+.go-note:empty { display: none; }
+.no-games .go-note { color: var(--ui-ink); font-weight: 700; }
+.side-sep { height: 1px; background: var(--ui-line); margin: 4px 0; }
+.ch-open { justify-self: center; margin-top: 0; }
+
+/* ---------- dialogs, toast ---------- */
+dialog { background: var(--ui-cream); color: var(--ui-ink); border: var(--frame); box-shadow: var(--frame-in), var(--float); }
+dialog::backdrop { background: color-mix(in srgb, var(--ui-sky) 72%, transparent); backdrop-filter: blur(2px); }
+input, select, textarea { background: var(--ui-cream-2); color: var(--ui-ink); border-color: var(--ui-line); }
+.toast { border: 2px solid var(--ui-player); box-shadow: 0 0 0 3px var(--sel-glow), var(--float); }
+.toast.err { border-color: var(--ui-opponent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-opponent) 30%, transparent), var(--float); }
+/* the settings: the sound rows in one inset panel */
+#dlgSettings .w-sound { padding: 12px 14px; border-radius: 14px; background: var(--ui-cream-2); border: 1px solid var(--ui-line); }
+#dlgSettings .w-snd-row + .w-snd-row { padding-top: 12px; border-top: 1px solid var(--ui-line); }
+
+/* ---------- the match: the window's frame (the scene art itself is untouched) ---------- */
+.match-card { background: var(--ui-cream-2); border-color: var(--ui-line); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-glow) 45%, var(--ui-sky)), var(--ledge), var(--float); }
+.gt-btn, .gt-forfeit, .hud-side, .hud-mid, .gt-mode { border-color: var(--ui-line); }
+.ctl-panel { box-shadow: var(--frame-in), var(--ledge), var(--float); }
+.ctl-panel:focus { outline: none; }
+.ctl-panel:focus-visible { outline: 3px solid var(--ui-player); outline-offset: 2px; }
+
+/* ======== game cards: Full art "Bold" ========
+   Every game window: the home showcase (.sc-art), the mini cards under it (.mini-card), the Play page cards
+   (.ptile-pick + its "How to play" .tile-help) and the Challenge picker (.ch-gpick). The cover IS the card; the name
+   (.nm-full, .nm-short for narrow cards) and the hook sit at the bottom left over a strong fade, the hook in small
+   capitals. Picked = the blue frame + its glow + the check; not picked = the art greyed out and the name dimmed (never
+   a label). Text over the art always sits on the token scrim (--cs-scrim) at 80% or more where the text is. */
+:root {
+  --cs-scrim: var(--ui-ink);
+  --cs-on-art: var(--ui-cream);
+  --cs-on-art-2: color-mix(in srgb, var(--ui-cream) 84%, var(--ui-ink));
+  --cs-accent: var(--ui-glow);
+  --cs-a: color-mix(in srgb, var(--cs-scrim) 72%, transparent);
+  --cs-b: color-mix(in srgb, var(--cs-scrim) 88%, transparent);
+  --cs-c: color-mix(in srgb, var(--cs-scrim) 96%, transparent);
+  --cs-fade: linear-gradient(180deg, transparent, var(--cs-a) 30%, var(--cs-b) 52%, var(--cs-c));
+}
+.nm-short { display: none; }
+:is(.ptile-pick, .mini-card, .ch-gpick) {
+  display: grid; grid-template: "art" auto / minmax(0, 1fr); gap: 0; padding: 0; position: relative; overflow: hidden;
+  width: 100%; text-align: left; cursor: pointer; color: var(--cs-on-art); opacity: 1; border-radius: 16px;
+  background: var(--ui-cream-2); border: 3px solid var(--ui-line);
+  box-shadow: var(--ledge), 0 18px 46px -14px color-mix(in srgb, var(--ui-glow) 35%, transparent);
+  transition: transform .14s ease, box-shadow .15s, border-color .15s;
+}
+:is(.tile-cover, .mc-cover, .ch-gcover) { grid-area: art; }
+:is(.tile-meta, .mc-meta, .ch-gpick > b) {
+  grid-area: art; align-self: end; z-index: 1; display: grid; gap: 3px; margin: 0; border: 0; border-radius: 0; min-width: 0;
+  background: var(--cs-fade); color: var(--cs-on-art); text-shadow: 0 1px 2px var(--cs-scrim);
+}
+:is(.tile-meta b, .mc-meta b, .ch-gpick > b, .sc-title b) { font-family: var(--font-display); font-weight: 700; color: inherit; }
+:is(.tile-meta, .mc-meta) small { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--cs-accent); }
+.ptile { position: relative; transition: transform .14s ease; }
+:is(.ptile-pick, .mini-card, .ch-gpick):hover { transform: translateY(-3px); }
+:is(.ptile-pick, .mini-card, .ch-gpick):active { transform: translateY(1px); }
+:is(.ptile-pick, .mini-card, .ch-gpick):focus-visible { outline: 3px solid var(--ui-player); outline-offset: 4px; }
+.mini-card:hover { border-color: color-mix(in srgb, var(--ui-player) 45%, var(--ui-line)); }
+/* picked: the blue frame + its glow + the check; not picked: the art greyed out, the name dimmed (a hint of color on hover) */
+:is(.ptile-pick, .ch-gpick)[aria-pressed="true"] { border-color: var(--ui-player); box-shadow: 0 0 0 3px var(--sel-glow), 0 12px 28px -12px var(--sel-glow), var(--ledge); }
+:is(.ptile-pick, .ch-gpick)[aria-pressed="false"] { border-color: var(--ui-line); box-shadow: var(--ledge-sm); }
+:is(.ptile-pick, .ch-gpick)[aria-pressed="false"] :is(.tile-cover, .ch-gcover) > * { filter: grayscale(1) opacity(.55); }
+:is(.ptile-pick, .ch-gpick)[aria-pressed="false"]:hover :is(.tile-cover, .ch-gcover) > * { filter: grayscale(.55) opacity(.8); }
+:is(.ptile-pick, .ch-gpick)[aria-pressed="false"] :is(.tile-meta b, .ch-gpick > b) { color: var(--cs-on-art-2); }
+:is(.ptile-check, .ch-gcheck) {
+  position: absolute; z-index: 3; top: 12px; right: 12px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%;
+  background: var(--ui-player); color: var(--ui-on-play); border: 2px solid var(--ui-cream); box-shadow: 0 2px 6px color-mix(in srgb, var(--shadow) 35%, transparent);
+  transition: opacity .15s, transform .15s;
+}
+:is(.ptile-check, .ch-gcheck) svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }   /* the Lucide check, stroke 2 like every icon */
+.ch-gcheck { top: 6px; right: 6px; width: 24px; height: 24px; }
+.ch-gcheck svg { width: 14px; height: 14px; }
+.ch-gpick[aria-pressed="false"] .ch-gcheck { opacity: 0; transform: scale(.6); }
+.ptile-pick[aria-pressed="false"] .ptile-check { display: none; }
+/* "How to play": a framed text button (the tutorial) */
+.ptile .tile-help {
+  position: absolute; z-index: 3; left: 12px; top: 12px; min-height: 32px; padding: 5px 12px;
+  display: inline-flex; align-items: center; border-radius: 10px; cursor: pointer; white-space: nowrap;
+  font: 700 14px/1 var(--font-display); color: var(--ui-ink); background: var(--ui-cream); border: 2px solid var(--ui-line);
+  box-shadow: var(--ledge-sm); transition: transform .08s, background-color .12s;
+}
+.ptile .tile-help:hover { background: var(--ui-cream-2); }
+.ptile .tile-help:active { transform: translateY(2px); box-shadow: none; }
+.ptile .tile-help:focus-visible { outline: 3px solid var(--ui-player); outline-offset: 2px; }
+.ch-games { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ch-gpick { border-radius: 12px; border-width: 2.5px; }
+.ch-gpick[aria-pressed="false"] { opacity: 1; }
+/* the showcase title over the art */
+.sc-title {
+  position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; display: grid; justify-items: start; gap: 4px;
+  padding: 90px 28px 22px; background: var(--cs-fade); color: var(--cs-on-art); text-shadow: 0 1px 2px var(--cs-scrim);
+}
+.sc-title b { font-size: clamp(30px, 3.2vw, 46px); line-height: 1; text-shadow: 0 3px 0 var(--cs-scrim); }
+.sc-tag { order: -1; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--cs-accent); }
+/* Bold: the name big at the bottom left over a strong fade, the hook in small capitals */
+.tile-meta { padding: 64px 20px 16px; gap: 6px; }
+.tile-meta b { font-size: 31px; line-height: 1; letter-spacing: .01em; text-shadow: 0 2px 0 var(--cs-scrim); }
+.mc-meta { padding: 46px 14px 12px; gap: 4px; }
+.mc-meta b { font-size: 22px; line-height: 1.05; }
+.ch-gpick > b { padding: 14px 8px 6px; font-size: 15px; line-height: 1.1; }
+
+/* ---------- the rotate overlay (#rotateOverlay): a portrait phone or tablet (narrow, upright, touch) is asked to turn ----
+   Shown by this media query alone; app.js (rotateGuard) marks the rest of the page inert while it shows. It sits above
+   everything: open dialogs, sheets and toasts are hidden under it. */
+.rotate-overlay { display: none; }
+@media (orientation: portrait) and (max-width: 900px) and (pointer: coarse), (orientation: portrait) and (max-width: 520px) {
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 2147483000; display: grid; place-content: center; justify-items: center; gap: 16px;
+    padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); text-align: center;
+    background: var(--ui-sky); color: var(--ui-ink); overflow: hidden;
+  }
+  .rotate-overlay::before {
+    content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(130% 55% at 50% 112%, color-mix(in srgb, var(--ui-glow) 35%, transparent), transparent 72%);
+  }
+  body { overflow: hidden; }
+  dialog[open], dialog::backdrop, .toast, .coach, .offer, .help-sheet { visibility: hidden; }
+}
+.rotate-overlay .wordmark-big { margin-bottom: 4px; }
+.rotate-overlay .ro-phone {
+  display: grid; place-items: center; width: 112px; height: 112px; border-radius: 50%;
+  background: var(--ui-cream); color: var(--ui-play); border: var(--frame); box-shadow: var(--frame-in), var(--ledge);
+}
+.rotate-overlay .ro-phone .vi { width: 60px; height: 60px; transform-origin: 50% 50%; animation: ro-turn 2.6s cubic-bezier(.6, 0, .3, 1) infinite; }
+@keyframes ro-turn { 0%, 18% { transform: rotate(0deg); } 48%, 72% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
+.rotate-overlay h2 { margin: 0; font: 700 clamp(24px, 7vw, 34px)/1.1 var(--font-display); color: var(--ui-ink); }
+.rotate-overlay p { margin: 0; max-width: 28ch; font-size: 16px; font-weight: 700; color: var(--ui-ink-2); }
+
+/* ---------- narrower windows ---------- */
+@media (max-width: 960px) {
+  .showcase { grid-template-columns: 1fr; padding: 0; gap: 0; }
+  .sc-art { border-right: 0; border-bottom: 3px solid var(--ui-line); }
+  .sc-copy { padding: 16px 18px 18px; }
+  .play-grid { grid-template-columns: 1fr; }
+  .play-side { position: static; }
+}
+@media (max-width: 860px) {
+  .topbar { flex-wrap: wrap; padding: 10px 12px 8px; gap: 8px 6px; --tb-btn: 40px; }
+  .brand-tag { display: none; }
+  .brand .wordmark { font-size: 24px; }
+  .main-nav { order: 10; flex-basis: 100%; justify-content: flex-start; }
+  .main-nav button { flex: none; padding: 6px 14px; font-size: 15px; }
+  .topbar > .settings-btn { margin-left: 2px; }
+  .arcade-page { padding: 14px 12px 12px; gap: 14px; }
+  .sc-copy h1 { font-size: 34px; }
+  .sc-text { font-size: 15px; }
+  #btnPlay { min-width: 0; flex: 1.4 1 0; font-size: 21px; }
+  #btnDemo { flex: 1 1 0; font-size: 18px; padding-inline: 12px; }
+  .play-head { align-items: center; }
+  .play-head .page-sub { display: none; }
+  /* a match on a small screen: the nav row would only say "finish the match first", so the game gets that room */
+  body[data-view="match"] .main-nav { display: none; }
+  /* Penalty's big panel never overflows a narrow game window: the buttons share the width, the goal icons shrink */
+  :root #viewMatch .scene-controls.penalty .ctl { flex: 1 1 0; min-width: 0; }
+  :root #viewMatch .scene-controls.penalty .ctl-icon { width: 100%; max-width: 72px; height: auto; aspect-ratio: 72 / 50; }
+  /* the cards */
+  .ptiles { gap: 12px; }
+  :is(.ptile-pick, .mini-card) { border-radius: 14px; border-width: 2.5px; }
+  /* How to play under the card, the card itself stays the full cover */
+  .ptile { display: grid; grid-template-rows: 1fr auto; gap: 7px; }
+  .ptile .tile-help { position: static; justify-content: center; min-height: 30px; padding: 3px 8px; font-size: 13px; border-radius: 8px; border-width: 1.5px; }
+  .ptile-check { top: 8px; right: 8px; width: 26px; height: 26px; }
+  .ptile-check svg { width: 15px; height: 15px; }
+  .mini-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .mini-card .nm-full { display: none; }
+  .mini-card .nm-short { display: inline; }
+  .mc-meta small { display: none; }
+  :is(.tile-meta b, .mc-meta b, .ch-gpick > b) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile-meta { padding: 28px 10px 8px; gap: 2px; }
+  .tile-meta b { font-size: clamp(14px, 4vw, 18px); }
+  .tile-meta small { font-size: 10px; letter-spacing: .06em; }
+  .mc-meta { padding: 20px 6px 6px; }
+  .mc-meta b { font-size: 14px; }
+  .sc-title { padding: 50px 16px 13px; }
+  .sc-title b { font-size: 27px; }
+  .sc-tag { font-size: 10px; }
+}
+@media (max-width: 520px) {
+  .ch-games { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ptile-pick .tile-meta small { display: none; }
+}
+@media (max-width: 430px) {
+  .topbar { gap: 6px 4px; padding: 8px 8px 6px; --tb-btn: 36px; }
+  .brand .wordmark { font-size: 21px; }
+  .mini-cards { gap: 7px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .play-go:not(:disabled) { animation: none; }
+  .showcase.swap .sc-cover > *, .showcase.swap .sc-copy h1, .showcase.swap .sc-text { animation: none; }
+  .rotate-overlay .ro-phone .vi { animation: none; transform: rotate(-90deg); }
+  :is(.ptile-pick, .mini-card, .ch-gpick, .ptile, .ptile .tile-help, .ptile-check, .ch-gcheck) { transition: none; }
+  :is(.ptile-pick, .mini-card, .ch-gpick):is(:hover, :active) { transform: none; }
+}
+
+/* ---- landscape phones (and any short window): the desktop layout, scaled to the height ----
+   Phones play in landscape only (a portrait phone or tablet shows the rotate overlay above), so a short landscape
+   screen keeps the desktop arrangement: the bar on ONE row (the wordmark, the nav, the right group), the showcase side
+   by side, the Play page's games beside the side panel, and every dialog sized to the height (its body scrolls inside,
+   the header with the close button and the footer stay in view). A match hides the page bar here: the game window
+   gets the whole height (its own strip has How to play, mute and Forfeit). */
+@media (orientation: landscape) and (max-height: 560px) {
+  :root { --bar-in: 40px; }
+  .topbar { flex-wrap: nowrap; padding-top: 5px; padding-bottom: 7px; gap: 8px; --tb-btn: 36px; }
+  .brand-tag { display: none; }
+  .brand .wordmark { font-size: 22px; }
+  .main-nav { order: 0; flex-basis: auto; margin: 0 0 0 4px; justify-content: flex-start; }
+  .main-nav button { flex: none; padding: 5px 12px; font-size: 15px; border-radius: 10px; }
+  body[data-view="match"] > .topbar { display: none; }
+  body[data-view="match"] .match { padding-top: 6px; }
+
+  /* home: the showcase side by side, compact */
+  .arcade-page { padding: 8px 14px 12px; gap: 10px; }
+  .landing { gap: 12px; }
+  .showcase { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 0; padding: 0; }
+  .sc-art { border-right: 3px solid var(--ui-line); border-bottom: 0; }
+  .sc-copy { padding: 12px 16px; gap: 10px; }
+  .sc-copy h1 { font-size: clamp(24px, 3.6vw, 32px); }
+  .sc-text { font-size: 14px; }
+  .sc-copy .actions { gap: 8px; flex-wrap: nowrap; }
+  #btnPlay { min-width: 0; flex: 1.3 1 0; font-size: 19px; padding: 10px 14px; }
+  #btnDemo { flex: 1 1 0; font-size: 16px; padding: 10px 12px; }
+  .sc-title { padding: 34px 12px 9px; }
+  .sc-title b { font-size: 21px; }
+  .mini-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+
+  /* the Play page: the games (two across) beside the side panel, which stays in view with its buttons */
+  .play-head .page-sub { display: none; }
+  .page-title { font-size: 24px; }
+  .play-games { gap: 8px; }
+  .sec-head h2 { font-size: 20px; }
+  .play-grid { grid-template-columns: minmax(0, 1fr) minmax(230px, 280px); gap: 14px; }
+  .play-head { gap: 8px; }
+  .play-side { position: sticky; top: 8px; gap: 7px; padding: 10px 12px; max-height: calc(100dvh - 16px); overflow-y: auto; }
+  .play-side h2 { font-size: 19px; }
+  .play-side .side-sub { display: none; }
+  .play-sum { padding: 6px 8px; gap: 1px; }
+  .ss-main { font-size: 16px; }
+  .ss-tok { font-size: 12px; }
+  .play-go { font-size: 18px; padding: 9px 14px; }
+  .play-ai { font-size: 16px; padding: 8px 14px; }
+  .ch-open { padding: 6px 14px; font-size: 15px; }
+  .ptiles { gap: 10px; }
+  .tile-meta { padding: 24px 10px 8px; gap: 2px; }
+  .tile-meta b { font-size: 17px; }
+  .tile-meta small { font-size: 10px; }
+
+  /* dialogs: sized to the height, a compact header and footer */
+  dialog { max-height: calc(100dvh - 16px); padding: 0; }
+  dialog h2 { font-size: 21px; }
+  .modal-head { min-height: 46px; padding: 5px 8px 5px 16px; }
+  .modal-head h2 { font-size: 20px; }
+  .modal-x { width: 36px; height: 36px; }
+  .modal-x svg { width: 20px; height: 20px; }
+  .modal-body { padding: 10px 16px 12px; }
+  .modal-foot { padding: 7px 16px 8px; }
+  .modal-foot .btn { padding: 8px 16px; font-size: 16px; }
+
+  /* the avatar picker: the figure on the left (it stays while the options scroll), the options on the right */
+  .customizer { width: min(780px, calc(100vw - 24px)); }
+  .customizer .modal-body { grid-template-columns: minmax(150px, 34%) minmax(0, 1fr); gap: 10px 16px; padding-top: 10px; }
+  .customizer .cust-stage { position: sticky; top: 0; height: max(160px, calc(100dvh - 150px)); }
+  .customizer .cust-side { gap: 10px; }
+  .customizer .cust-opts { gap: 8px; }
+  .customizer .opt-list { gap: 6px; }
+  .customizer .opt { padding: 2px; }
+  .customizer .opt-dot { width: 24px; height: 24px; }
+  .customizer .opt-hair { width: 36px; height: 36px; }
+  .customizer .cust-name { padding-top: 8px; }
+  .customizer .cust-name .claim-row .btn { width: 40px; height: 40px; }
+  .customizer dialog input, .customizer input { padding: 7px 10px; }
+  .customizer .modal-foot .btn { min-width: 0; flex: 0 1 auto; }
+
+  /* the queue: a smaller figure and timer, so the box fits the height */
+  .queue-box { padding: 12px 18px 14px; max-height: calc(100dvh - 16px); overflow-y: auto; }
+  .queue-box h2 { font-size: 22px; }
+  .queue-box .timer { font-size: 34px; }
+  .queue-box p { margin-bottom: 10px; font-size: 15px; }
+  .q-scene { padding-top: 8px; margin-bottom: 8px; }
+  .q-fig { height: 96px; }
+  .q-vs { width: 72px; height: 72px; margin-bottom: 8px; font-size: 46px; }
+
+  /* the result: the card as large as the height allows, the buttons in a column beside it */
+  #dlgResult { width: min(calc(100vw - 24px), calc((100dvh - 40px) * 1200 / 630 + 196px)); max-height: calc(100dvh - 16px); }
+  #dlgResult[open] { display: grid; grid-template-columns: minmax(0, 1fr) 176px; grid-template-rows: auto minmax(0, 1fr); }
+  #dlgResult .modal-head { grid-column: 2; grid-row: 1; min-height: 0; padding: 8px 8px 0; border-bottom: 0; }
+  #dlgResult .modal-body { grid-column: 1; grid-row: 1 / 3; display: grid; align-content: center; padding: 10px 0 10px 10px; }
+  #dlgResult .result-card { width: min(100%, calc((100dvh - 40px) * 1200 / 630)); margin: 0 auto; }
+  #dlgResult .modal-foot { grid-column: 2; grid-row: 2; grid-auto-flow: row; grid-auto-columns: auto; align-content: end; gap: 10px; padding: 10px; border-top: 0; }
+  #dlgResult .btn { min-height: 46px; padding: 9px 8px; font-size: 17px; }
+  /* Penalty's corner panel on a short screen (game-ui.css sizes it; the narrow-window rule above would stretch it) */
+  :root #viewMatch .scene-controls.penalty .ctl { flex: 0 0 auto; min-width: 78px; }
+  :root #viewMatch .scene-controls.penalty .ctl-icon { width: 54px; height: 34px; max-width: none; aspect-ratio: auto; }
+}
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 700px) {
+  .main-nav button { padding: 5px 9px; font-size: 14px; }
+  .brand .wordmark { font-size: 20px; }
+  .topbar { gap: 6px; --tb-btn: 34px; }
+  #dlgResult[open] { grid-template-columns: minmax(0, 1fr) 150px; }
+  #dlgResult .btn { font-size: 15px; }
+  .ptile-pick .tile-meta small { display: none; }
+}
+/* the shortest phones (375 px and less): the side panel's title goes, so its buttons stay in view */
+@media (orientation: landscape) and (max-height: 400px) {
+  .play-side > h2 { display: none; }
+}

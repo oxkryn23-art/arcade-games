@@ -1,0 +1,30 @@
+{
+  "name": "second-guess",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Second Guess: realtime 1v1 simultaneous mind games in the browser (Node.js, Express, socket.io, SVG).",
+  "license": "MIT",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node test/games.js && node test/units.js && node test/ai.js && node test/figures.js && node test/client.js && node test/sim.js && node test/security.js",
+    "icons": "node tools/build-icons.js",
+    "tutorial-text": "node tools/tutorial-text.js",
+    "timing": "node tools/reveal-timing.js",
+    "screens": "node tools/screens.js",
+    "covers": "node tools/covers.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "compression": "^1.8.2",
+    "express": "^4.21.0",
+    "socket.io": "^4.8.0"
+  },
+  "devDependencies": {
+    "lucide-static": "1.66.0",
+    "socket.io-client": "^4.8.0"
+  }
+}

@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Second Guess</title>
+  <meta name="description" content="Free 1v1 mind games in the browser: both players pick at the same time, then the reveal.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Second Guess">
+  <meta property="og:description" content="Free 1v1 mind games in the browser: both players pick at the same time, then the reveal.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preload" href="/fonts/fredoka-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/fonts.css">
+  <link rel="stylesheet" href="/css/theme.css">
+  <script src="/js/config.js"></script>
+  <script src="/js/icons.js"></script>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/scenes.css">
+  <link rel="stylesheet" href="/css/game-ui.css">
+  <link rel="stylesheet" href="/css/arcade.css">
+</head>
+<body>
+  <!-- ROTATE OVERLAY: the game is played in landscape (one layout on every screen). A phone held upright sees only this
+       (arcade.css shows it by a media query; app.js rotateGuard makes the rest of the page inert meanwhile). -->
+  <div class="rotate-overlay" id="rotateOverlay" role="dialog" aria-modal="true" aria-labelledby="rotateTitle" aria-describedby="rotateText" tabindex="-1">
+    <span class="wordmark wordmark-big" aria-hidden="true">Second<b>Guess</b></span>
+    <span class="ro-phone" aria-hidden="true"><span data-icon="smartphone"></span></span>
+    <h2 id="rotateTitle">Turn your phone sideways</h2>
+    <p id="rotateText">Second Guess is played in landscape. Turn your phone sideways to play.</p>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="#" id="brand" aria-label="Second Guess, home"><span class="wordmark" aria-hidden="true">Second<b>Guess</b></span><span class="brand-tag" aria-hidden="true">Read them. Beat them.</span></a>
+    <nav class="main-nav" id="mainNav" aria-label="Main">
+      <button type="button" data-nav="home" id="navHome">Home</button>
+      <button type="button" data-nav="play" id="navPlay">Play</button>
+    </nav>
+    <div class="spacer"></div>
+    <button class="avatar me-avatar" id="meAvatar" aria-label="Your avatar. Change it" title="Your avatar"></button>
+    <button type="button" class="settings-btn" id="settingsBtn" aria-label="Settings" title="Settings"><span class="ico" data-icon="settings" aria-hidden="true"></span></button>
+  </header>
+
+  <!-- HOME: a featured game showcase that rotates through the games every 5 s (pauses on hover / focus), Play online +
+       Play vs AI right there, the other games as smaller cards that swap with the featured one. -->
+  <main id="viewHome" class="landing arcade-page hidden">
+    <div class="kicker-row"><span class="kicker">Explore games</span></div>
+    <section class="showcase frame" id="showcase" aria-roledescription="carousel" aria-label="Featured game">
+      <div class="sc-art">
+        <span class="sc-cover" id="scCover"></span>
+        <div class="sc-title"><span class="sc-tag">Featured game</span><b id="scName"></b></div>
+      </div>
+      <div class="sc-copy">
+        <h1 id="scHead">Read them. Beat them.</h1>
+        <p class="sc-text" id="scText">1v1 mind games with no luck and no reflexes.</p>
+        <div class="actions">
+          <button class="btn btn-play btn-big" id="btnPlay">Play online</button>
+          <button class="btn btn-ghost btn-big" id="btnDemo">Play vs AI</button>
+        </div>
+        <div class="sc-nav"><div class="sc-dots" id="scDots" role="group" aria-label="Featured games"></div></div>
+      </div>
+    </section>
+    <section class="more" aria-labelledby="stripTitle">
+      <div class="sec-head"><h2 id="stripTitle">Try other games</h2></div>
+      <div class="mini-cards" id="coverStrip"></div>
+    </section>
+    <footer class="site-foot">
+      <span class="foot-note"><span>Free to play.</span><span>Both players pick at the same time: no luck, no reflexes.</span></span>
+      <span class="foot-links"><button class="rules-link" id="footDemo">Play vs AI</button><button class="rules-link" id="footChallenge" data-challenge>Challenge a friend</button></span>
+    </footer>
+  </main>
+
+  <!-- PLAY: the games as cover cards to pick (lit + check) or leave out (dimmed), each with "How to play"; the side
+       panel: Find an opponent (matchmaking over the picked games), Play vs AI, Challenge a friend. -->
+  <main id="viewPlay" class="play-page arcade-page hidden">
+    <div class="play-head">
+      <div><h1 class="page-title">Pick your games.</h1><p class="page-sub">Master of one or jack of all trades?</p></div>
+    </div>
+    <div class="play-grid">
+      <section class="play-games" aria-labelledby="gamesTitle">
+        <div class="sec-head">
+          <h2 id="gamesTitle">Your games <small class="games-count" id="gamesCount"></small></h2>
+          <button type="button" class="link-btn" id="gamesAll" aria-pressed="false">Select all</button>
+        </div>
+        <div class="ptiles" id="playTiles" role="group" aria-label="Games"></div>
+        <p class="note info-note" id="gamesNote">With several games on, you play a random one of them.</p>
+      </section>
+      <aside class="play-side frame" aria-label="Play">
+        <h2>Ready?</h2>
+        <p class="side-sub" id="sideSub">Matched with the first player who shares one of your games.</p>
+        <div class="play-sum" id="summary" aria-live="polite"></div>
+        <button class="btn btn-play btn-big play-go" id="btnFind">Find an opponent</button>
+        <button class="btn btn-ghost btn-big play-ai" id="btnAi">Play vs AI</button>
+        <p class="note go-note" id="panelNote"></p>
+        <div class="side-sep" aria-hidden="true"></div>
+        <button class="btn btn-ghost ch-open" data-challenge>Challenge a friend</button>
+      </aside>
+    </div>
+    <footer class="site-foot">
+      <span class="foot-note"><span>Free to play.</span><span>Both players pick at the same time: no luck, no reflexes.</span></span>
+    </footer>
+  </main>
+
+  <!-- MATCH: the scene card fills the space under the bar; the controls panel is an overlay at its bottom (the card is
+       sized so the panel never covers more than the scene's safeBottom). -->
+  <main id="viewMatch" class="match hidden">
+    <div class="match-stage" id="matchStage">
+      <div class="match-card" id="matchCard">
+        <div class="scene-host" id="sceneHost"></div>
+        <!-- The game window's top strip, over the scene: "How to play" and mute on the left, the scoreboard (#hud,
+             js/scenes/hud.js) in the middle, Forfeit (with a confirm) in the top-right corner. -->
+        <div class="game-top" id="gameTop">
+          <div class="gt-left">
+            <button type="button" class="gt-btn gt-text" id="mHelp" title="How to play">How to play</button>
+            <button type="button" class="gt-btn rules-link book" id="mRules">Rules</button>
+            <button type="button" class="gt-btn" id="mMute" aria-label="Mute" aria-pressed="false" title="Mute"><span class="ico-on" data-icon="volume-2"></span><span class="ico-off" data-icon="volume-x"></span></button>
+          </div>
+          <div class="hud hidden" id="hud"></div>
+          <div class="gt-right">
+            <button type="button" class="gt-forfeit" id="mForfeit" aria-label="Forfeit and leave the match"><span class="ico" data-icon="flag"></span><span class="lbl" id="mForfeitLbl">Forfeit</span></button>
+            <div class="gt-confirm hidden" id="forfeitAsk" role="alertdialog" aria-labelledby="forfeitAskText">
+              <p id="forfeitAskText">Forfeit this match?</p>
+              <div class="gt-confirm-btns"><button type="button" class="btn btn-sm btn-ghost" id="forfeitNo">Keep playing</button><button type="button" class="btn btn-sm btn-danger" id="forfeitYes">Forfeit</button></div>
+            </div>
+          </div>
+          <div class="gt-mode" id="mMode"></div>
+        </div>
+        <div class="controls" id="controls"></div>
+        <div class="match-overlay hidden" id="matchOverlay" aria-live="polite"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RULES CARD during a match (the timer keeps running) -->
+  <section class="sheet help-sheet hidden" id="helpSheet" aria-label="How to play">
+    <div class="scout-head"><h3 id="helpTitle">How to play</h3><button type="button" class="modal-x sm" id="helpClose" aria-label="Close" data-icon="x"></button></div>
+    <div class="help-preview"><div class="scene-host" id="helpScene"></div></div>
+    <ol id="helpRules"></ol>
+    <div class="help-keys" id="helpKeys" hidden></div>
+    <p class="note">The timer keeps running.</p>
+  </section>
+
+  <!-- TUTORIAL OFFER -->
+  <section class="sheet offer hidden" id="tutOffer" aria-live="polite">
+    <p id="tutOfferText"></p>
+    <div class="row-btns"><button class="btn btn-ghost" id="tutSkip">Skip</button><button class="btn btn-play" id="tutPlay">Play it</button></div>
+  </section>
+
+  <!-- QUEUE -->
+  <div class="queue-overlay hidden" id="queueOverlay" role="dialog" aria-modal="true" aria-labelledby="qTitle">
+    <div class="queue-box card-panel">
+      <div class="q-scene" id="qScene" aria-hidden="true"></div>
+      <h2 id="qTitle">Finding an opponent</h2>
+      <div class="timer" id="qTimer">0:00</div>
+      <p id="qInfo"></p>
+      <button class="btn btn-ghost btn-block" id="qCancel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- DIALOGS: every one has a header with its title and a Close (x) that never scrolls away; the body scrolls inside
+       the window and an optional footer keeps the main buttons in view. -->
+  <dialog id="dlgRules" aria-labelledby="rulesTitle">
+    <header class="modal-head"><h2 id="rulesTitle"></h2><button type="button" class="modal-x" data-close aria-label="Close" data-icon="x"></button></header>
+    <div class="modal-body"><div class="rules-cover" id="rulesCover"></div><ol id="rulesList"></ol></div>
+    <footer class="modal-foot"><button class="btn btn-ghost" id="rulesTutorial">Play the tutorial</button><button class="btn btn-play" data-close>Got it</button></footer>
+  </dialog>
+
+  <!-- The result: the result card (drawn in the browser: the wordmark, the result, both players), Play again, Share,
+       Back. The text version shows only while the card is being drawn. -->
+  <dialog id="dlgResult" aria-labelledby="resTitle">
+    <header class="modal-head"><span class="result-head" aria-hidden="true"></span><button type="button" class="modal-x" id="resClose" aria-label="Close" data-icon="x"></button></header>
+    <div class="modal-body">
+      <div class="result-card" id="resCard">
+        <img id="resImg" alt="">
+        <div class="result-fallback" id="resFallback"><h2 class="result-title" id="resTitle"></h2><div class="result-amt" id="resAmt"></div></div>
+      </div>
+    </div>
+    <footer class="modal-foot row-btns">
+      <button class="btn btn-play" id="resAgain">Play again</button>
+      <button class="btn btn-gold" id="btnShare">Share</button>
+      <button class="btn btn-ghost" id="resLobby">Back</button>
+    </footer>
+  </dialog>
+
+  <!-- Avatar picker (opens on the first visit): skin tone, hairstyle, hair color, shirt color around your live
+       character, and your nickname. -->
+  <dialog id="dlgCustomize" class="customizer" aria-labelledby="custTitle">
+    <header class="modal-head"><h2 id="custTitle">Your avatar</h2><button type="button" class="modal-x" data-close aria-label="Close" data-icon="x"></button></header>
+    <div class="modal-body">
+      <div class="cust-stage" id="custStage">
+        <div class="cust-rig" id="custRig" aria-hidden="true"></div>
+      </div>
+      <div class="cust-side">
+        <div class="cust-opts" id="custOpts"></div>
+        <div class="cust-name">
+          <label for="custNick">Nickname</label>
+          <div class="claim-row"><input id="custNick" maxlength="18" autocomplete="off" spellcheck="false"><button type="button" class="btn btn-ghost btn-sm" id="custDice" aria-label="Random nickname" title="Random nickname"><span class="ico" data-icon="dices"></span></button></div>
+          <p class="note">3 to 18 characters: letters, digits, spaces, _ . -</p>
+        </div>
+        <p class="note err" id="custErr"></p>
+      </div>
+    </div>
+    <footer class="modal-foot"><button type="button" class="btn btn-ghost" id="custRandom">Surprise me</button><button class="btn btn-play" id="custSave"><span class="ico" data-icon="check"></span>Save</button></footer>
+  </dialog>
+
+  <!-- Challenge a friend (server/challenges.js): pick the games, get a one-time link to send. On top: only your latest
+       active challenge (status, Copy link, Cancel). -->
+  <dialog id="dlgChallenge" class="challenge-dialog" aria-labelledby="chTitle">
+    <header class="modal-head"><h2 id="chTitle">Challenge a friend</h2><button type="button" class="modal-x" data-close aria-label="Close" data-icon="x"></button></header>
+    <div class="modal-body">
+      <section class="ch-latest hidden" id="chMineBox" aria-labelledby="chLatestTitle">
+        <h3 class="ch-h" id="chLatestTitle">Your latest challenge</h3>
+        <div id="chList"></div>
+      </section>
+      <div id="chForm">
+        <div class="ch-ghead"><h3 class="ch-h">Games</h3><button type="button" class="link-btn" id="chAll" data-chg="all" aria-pressed="false">Select all</button></div>
+        <div class="ch-games" id="chGames" role="group" aria-label="Games"></div>
+        <p class="note">With several games, one is picked at random when the match starts.</p>
+        <p class="note ch-as" id="chAs"></p>
+        <p class="note err" id="chErr"></p>
+      </div>
+      <div id="chResult" class="hidden">
+        <p class="ch-ready" id="chReadyText"></p>
+        <div class="ch-link"><input id="chLink" readonly aria-label="Challenge link"><button type="button" class="btn btn-play btn-sm" id="chCopy">Copy</button></div>
+        <p class="note" id="chStatus" aria-live="polite"></p>
+      </div>
+    </div>
+    <footer class="modal-foot"><button type="button" class="btn btn-ghost hidden" id="chNew">New challenge</button><button type="button" class="btn btn-play" id="chCreate">Create link</button></footer>
+  </dialog>
+
+  <!-- The challenge card a friend sees when opening /c/<code>: who, the games, Accept / Decline. -->
+  <dialog id="dlgChallengeCard" class="challenge-card" aria-labelledby="ccTitle">
+    <header class="modal-head"><h2 id="ccTitle">You're challenged</h2><button type="button" class="modal-x" data-close aria-label="Close" data-icon="x"></button></header>
+    <div class="modal-body" id="ccBody"></div>
+    <footer class="modal-foot" id="ccFoot"></footer>
+  </dialog>
+
+  <!-- Settings: sound only (effects and music, each on / off with a volume). -->
+  <dialog id="dlgSettings" aria-labelledby="setTitle">
+    <header class="modal-head"><h2 id="setTitle"><span class="ico" data-icon="settings"></span>Settings</h2><button type="button" class="modal-x" data-close aria-label="Close" data-icon="x"></button></header>
+    <div class="modal-body">
+      <h3 class="w-head">Sound</h3>
+      <div class="w-sound">
+        <div class="w-snd-row"><label class="sw"><input type="checkbox" id="sndFx"> Effects</label><label class="w-vol"><span>Effects volume</span><input type="range" id="sndVol" min="0" max="1" step="0.05"></label></div>
+        <div class="w-snd-row"><label class="sw"><input type="checkbox" id="sndMusic"> Music</label><label class="w-vol"><span>Music volume</span><input type="range" id="sndMusicVol" min="0" max="1" step="0.05"></label></div>
+      </div>
+    </div>
+    <footer class="modal-foot"><button class="btn btn-play" data-close>Done</button></footer>
+  </dialog>
+
+  <script src="/socket.io/socket.io.min.js"></script>
+  <script src="/js/engines.js"></script>
+  <script src="/js/sound.js"></script>
+  <script src="/js/names.js"></script>
+  <script src="/js/scenes/kit.js"></script>
+  <script src="/js/scenes/hud.js"></script>
+  <script src="/js/figures/avatar.js"></script>
+  <script src="/js/figures/rig.js"></script>
+  <script src="/js/figures/expressions.js"></script>
+  <script src="/js/figures/props.js"></script>
+  <!-- the games' scenes, previews and tutorials load on demand (app.js loadGames, server/index.js GAME_SCRIPTS) -->
+  <script src="/js/tutorial-text.js"></script>
+  <script src="/js/card.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

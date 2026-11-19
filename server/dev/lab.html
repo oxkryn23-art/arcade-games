@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Second Guess — Scene lab</title>
+  <link rel="stylesheet" href="/css/fonts.css">
+  <link rel="stylesheet" href="/css/theme.css">
+  <script src="/js/config.js"></script>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/scenes.css">
+  <link rel="stylesheet" href="/css/game-ui.css">
+  <style>
+    body { padding: 0; background: var(--ui-sky); color: var(--ui-ink); }
+    .lab { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; padding: 16px; min-height: 100dvh; }
+    .panel { display: grid; gap: 10px; align-content: start; }
+    .panel h1 { font-size: 24px; }
+    .panel h2 { font-size: 16px; margin-top: 8px; }
+    .panel label { display: grid; gap: 3px; font-size: 13px; color: var(--ui-ink-2); }
+    .panel select, .panel input { background: var(--ui-cream); border: 1px solid var(--ui-line); border-radius: 8px; padding: 7px; color: var(--ui-ink); }
+    .panel .row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .panel .btn { padding: 8px 10px; font-size: 13px; }
+    .stage-wrap { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 10px; height: calc(100dvh - 32px); }
+    .lab-hud { display: flex; justify-content: center; }
+    .lab-hud .hud { flex: 0 1 820px; }
+    #stage { min-height: 0; }
+    #log { font: 12px/1.4 ui-monospace, monospace; color: var(--ui-ink-2); max-height: 90px; overflow: auto; white-space: pre-wrap; }
+    @media (max-width: 860px) { .lab { grid-template-columns: 1fr; } .stage-wrap { height: 80dvh; } }
+    /* ?stage: only the scene and its controls (screenshots, covers) */
+    .stage-only .lab { display: block; padding: 0; } .stage-only .panel { display: none; } .stage-only .stage-wrap { height: 100dvh; gap: 0; grid-template-rows: minmax(0, 1fr) auto; }
+    .stage-only #log, .stage-only .lab-hud { display: none; }
+  </style>
+</head>
+<body>
+<script>if (/[?&]stage/.test(location.search)) document.body.classList.add('stage-only');</script>
+<div class="lab">
+  <div class="panel">
+    <h1>Scene lab</h1>
+    <p>Dev mode only. Trigger any reveal without playing. You are player 0.</p>
+    <label>Game <select id="game"></select></label>
+    <div id="ctxBox" class="panel"></div>
+    <label>Your move <select id="m0"></select></label>
+    <label>Opponent's move <select id="m1"></select></label>
+    <div class="row">
+      <button class="btn btn-primary" id="reveal">Reveal</button>
+      <button class="btn" id="all">Play all combinations</button>
+    </div>
+    <div class="row">
+      <button class="btn btn-ghost" id="lockOpp">Lock opponent</button>
+      <button class="btn btn-ghost" id="lockYou">Lock you</button>
+      <button class="btn btn-ghost" id="round">New round</button>
+    </div>
+    <div class="row">
+      <button class="btn btn-ghost" id="endWin">End: win</button>
+      <button class="btn btn-ghost" id="endLose">End: lose</button>
+      <button class="btn btn-ghost" id="endDraw">End: draw</button>
+    </div>
+    <div class="row">
+      <button class="btn btn-ghost" id="looks">Random looks</button>
+      <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="reduce"> Reduced motion</label>
+      <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="mute"> Mute</label>
+      <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="mini"> Mini preview</label>
+    </div>
+    <h2>Tutorials</h2>
+    <div class="row" id="tutorials"></div>
+  </div>
+  <div class="stage-wrap">
+    <div class="lab-hud"><div class="hud hidden" id="hud"></div></div>
+    <div id="stage" class="scene-host"></div>
+    <div id="controls" class="controls"></div>
+    <div id="log"></div>
+  </div>
+</div>
+<script src="/js/icons.js"></script>
+<script src="/js/engines.js"></script>
+<script src="/js/sound.js"></script>
+<script src="/js/scenes/kit.js"></script>
+<script src="/js/scenes/hud.js"></script>
+<script src="/js/figures/avatar.js"></script>
+<script src="/js/figures/rig.js"></script>
+<script src="/js/figures/expressions.js"></script>
+<script src="/js/figures/props.js"></script>
+<script src="/js/scenes/art.js"></script>
+<script src="/js/scenes/art-rps.js"></script>
+<script src="/js/scenes/art-penalty.js"></script>
+<script src="/js/scenes/art-shootout.js"></script>
+<script src="/js/scenes/rps-duel.js"></script>
+<script src="/js/scenes/rps.js"></script>
+<script src="/js/scenes/shootout.js"></script>
+<script src="/js/scenes/penalty.js"></script>
+<script src="/js/scenes/rps_minus_one.js"></script>
+<script src="/js/tutorial-text.js"></script>
+<script src="/js/tutorial.js"></script>
+<script>
+(async function () {
+  const $ = (s) => document.querySelector(s);
+  const E = window.DuelEngines, S = window.DuelScenes, K = window.DuelKit, A = window.DuelAvatar;
+  const cfg = window.DUEL_CONFIG;
+  const timing = Object.fromEntries(cfg.games.map((g) => [g.id, g.timing]));
+  const log = (t) => { $('#log').textContent = `${new Date().toLocaleTimeString()} ${t}\n` + $('#log').textContent; };
+  const PAIRS = [['rock', 'paper'], ['rock', 'scissors'], ['paper', 'scissors']];
+  const snap = (x) => JSON.parse(JSON.stringify(x));
+  const q = new URLSearchParams(location.search);
+
+  // Per-game context: how to build the state before the reveal, and which moves to offer.
+  const CONTEXT = {
+    rps: { fields: [], build: () => E.rps.init() },
+    shootout: {
+      fields: [['ammo0', 'Your ammo', [0, 1, 2, 3]], ['ammo1', "Opponent's ammo", [0, 1, 2, 3]], ['turn', 'Turn (0-based)', [0, 5, 11]]],
+      build: (v) => { const s = E.shootout.init(); s.ammo = [Number(v.ammo0), Number(v.ammo1)]; s.turn = Number(v.turn); return s; },
+      extraMoves: ['idle'],
+    },
+    penalty: {
+      fields: [['kicker', 'Kicker', ['you', 'opponent']], ['sudden', 'Sudden death', ['no', 'yes']]],
+      build: (v) => {
+        const s = E.penalty.init();
+        if (v.sudden === 'yes') for (let i = 0; i < 10; i++) E.penalty.resolveRound(s, ['left', 'left']);
+        if (v.kicker === 'opponent') E.penalty.resolveRound(s, ['left', 'right']);
+        return s;
+      },
+    },
+    rps_minus_one: {
+      fields: [['phase', 'Phase', ['pick', 'keep']], ['pair0', 'Your pair (keep phase)', PAIRS.map((p) => p.join('+'))], ['pair1', "Opponent's pair (keep phase)", PAIRS.map((p) => p.join('+'))]],
+      build: (v) => { const s = E.rps_minus_one.init(); if (v.phase === 'keep') { s.phase = 'keep'; s.pairs = [v.pair0.split('+'), v.pair1.split('+')]; } return s; },
+    },
+  };
+
+  const games = cfg.games.filter((g) => S.get(g.id));
+  $('#game').innerHTML = games.map((g) => `<option value="${g.id}">${g.name}</option>`).join('');
+  if (q.get('game')) $('#game').value = q.get('game');
+  $('#tutorials').innerHTML = games.map((g) => `<button class="btn btn-ghost" data-tut="${g.id}">${g.name}</button>`).join('');
+  let scene = null, state = null;
+
+  const values = () => Object.fromEntries([...document.querySelectorAll('#ctxBox select')].map((s) => [s.name, s.value]));
+  const moveLabel = (m) => (m == null ? 'missed (timeout)' : Array.isArray(m) ? m.join('+') : m);
+  function fillMoves() {
+    const id = $('#game').value, s = CONTEXT[id].build(values());
+    const opts = (i) => [...E[id].legalMoves(E[id].publicState(s, i), i), ...(CONTEXT[id].extraMoves || []), null];
+    for (const i of [0, 1]) $(`#m${i}`).innerHTML = opts(i).map((m) => `<option value='${JSON.stringify(m)}'>${moveLabel(m)}</option>`).join('');
+  }
+  function buildContext() {
+    const id = $('#game').value;
+    $('#ctxBox').innerHTML = CONTEXT[id].fields.map(([name, label, options]) => `<label>${label}<select name="${name}">${options.map((o) => `<option>${o}</option>`).join('')}</select></label>`).join('');
+    document.querySelectorAll('#ctxBox select').forEach((s) => s.addEventListener('change', () => { fillMoves(); mount(); }));
+    fillMoves();
+  }
+  const labPlayers = () => [{ name: 'QuietOtter', look: A.get() }, { name: 'CoralKite', ai: true, look: A.opponent() || A.random() }];
+  let hud = null;
+  function mount() {
+    scene?.destroy();
+    const id = $('#game').value;
+    state = CONTEXT[id].build(values());
+    scene = S.get(id).create();
+    const mini = $('#mini').checked, players = labPlayers();
+    hud = mini ? (DuelHud.hide(), null) : DuelHud.bind({ gameId: id, you: 0, players });
+    scene.mount($('#stage'), {
+      you: 0, mode: 'dev', mini, controlsEl: mini ? null : $('#controls'), players, hud,
+      send: (m) => { log(`you picked ${moveLabel(m)}`); hud?.status('you', 'locked'); scene.setLocked('you'); }, sound: window.DuelSound, timing: timing[id],
+    });
+    hud?.status('you', 'thinking'); hud?.status('opp', 'thinking');
+    if (mini) $('#controls').innerHTML = '';
+    scene.setRound(snap(E[id].publicState(state, 0)));
+  }
+  async function reveal(m0, m1) {
+    const id = $('#game').value, E2 = E[id];
+    state = CONTEXT[id].build(values());
+    const prev = snap(E2.publicState(state, 0));
+    scene.setRound(prev);
+    scene.setLocked('opp'); scene.setLocked('you');
+    hud?.status('you', ''); hud?.status('opp', '');
+    const res = E2.resolveRound(state, [m0, m1]);
+    const t0 = performance.now();
+    await scene.reveal({ moves: [m0, m1], roundWinner: res.roundWinner, state: snap(E2.publicState(state, 0)), prev });
+    const ms = Math.round(performance.now() - t0), budget = res.pauseMs ? (id === 'shootout' ? timing[id].duelOver : timing[id].phase) : timing[id].reveal;
+    log(`${moveLabel(m0)} vs ${moveLabel(m1)} -> winner ${res.roundWinner ?? '-'}, ${ms} ms (budget ${budget})${ms > budget ? '  OVER BUDGET' : ''}`);
+  }
+  const parse = (s) => JSON.parse(s);
+  $('#game').addEventListener('change', () => { buildContext(); mount(); });
+  $('#mini').addEventListener('change', mount);
+  $('#reduce').addEventListener('change', (e) => document.documentElement.classList.toggle('reduce-motion', e.target.checked));
+  $('#mute').addEventListener('change', (e) => window.DuelSound.setMuted(e.target.checked));
+  $('#mute').checked = window.DuelSound.state().muted;
+  $('#reveal').addEventListener('click', () => reveal(parse($('#m0').value), parse($('#m1').value)));
+  $('#all').addEventListener('click', async () => {
+    const a = [...$('#m0').options].map((o) => parse(o.value)), b = [...$('#m1').options].map((o) => parse(o.value));
+    for (const m0 of a) for (const m1 of b) { await reveal(m0, m1); await K.sleep(400); }
+  });
+  $('#lockOpp').addEventListener('click', () => { hud?.status('opp', 'locked'); scene.setLocked('opp'); });
+  $('#lockYou').addEventListener('click', () => { hud?.status('you', 'locked'); scene.setLocked('you'); });
+  $('#round').addEventListener('click', () => { hud?.status('you', 'thinking'); hud?.status('opp', 'thinking'); scene.setRound(snap(E[$('#game').value].publicState(state, 0))); });
+  $('#endWin').addEventListener('click', () => scene.end({ winner: 0 }));
+  $('#endLose').addEventListener('click', () => scene.end({ winner: 1 }));
+  $('#endDraw').addEventListener('click', () => scene.end({ winner: null }));
+  $('#looks').addEventListener('click', () => { A.set(A.random()); A.setOpponent(A.random()); mount(); });
+  $('#tutorials').addEventListener('click', (e) => {
+    const id = e.target.dataset.tut;
+    if (!id || !window.DuelTutorial) return;
+    scene?.destroy(); scene = null;
+    const players = labPlayers();
+    const tHud = DuelHud.bind({ gameId: id, you: 0, players });
+    window.DuelTutorial.start(id, { host: $('#stage'), controlsEl: $('#controls'), timing: timing[id], hud: tHud, players, onFinish: (st) => log(`tutorial ${id}: ${st}`) });
+  });
+  if (!A.opponent()) A.setOpponent(A.random());
+  buildContext();
+  mount();
+  window.lab = { reveal, mount, get scene() { return scene; }, E, S };
+})();
+</script>
+</body>
+</html>
