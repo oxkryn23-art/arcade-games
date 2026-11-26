@@ -18,9 +18,10 @@ function walk(dir, out = []) {
 }
 const files = walk('.');
 
-// 1. no raster images in the app: the covers are rendered from the scenes, the README screenshots are documentation
-const images = files.filter((f) => /\.(png|jpe?g|gif|webp|ico|bmp|avif)$/i.test(f) && !/^(\.\/)?(public\/covers|docs\/screenshots)\//.test(f.replace(/^\.\//, '')));
-assert.deepStrictEqual(images, [], 'no image files outside the rendered covers and the docs screenshots');
+// 1. no raster images in the app but the Penalty stadium and its fans (public/art/): the people are traced into paths,
+// the covers are rendered from the scenes, the README screenshots are documentation, art-source/ holds the source sheets
+const images = files.filter((f) => /\.(png|jpe?g|gif|webp|ico|bmp|avif)$/i.test(f) && !/^(\.\/)?(public\/covers|public\/art|docs\/screenshots|art-source)\//.test(f.replace(/^\.\//, '')));
+assert.deepStrictEqual(images, [], 'no image files outside the stadium art, the rendered covers, the docs screenshots and the source sheets');
 const svgs = files.filter((f) => f.endsWith('.svg'));
 assert.deepStrictEqual(svgs.map((f) => f.replace(/^\.\//, '')), ['public/favicon.svg'], 'the only SVG file is the code-written favicon');
 
@@ -49,7 +50,7 @@ for (const m of html.matchAll(/<dialog id="(\w+)"[\s\S]*?<\/dialog>/g)) {
 assert(!/<script>/.test(html), 'no inline scripts (the CSP forbids them)');
 
 // 5. every scene art element a scene asks for by a fixed name is registered in its art file
-const art = ['art.js', 'art-rps.js', 'art-penalty.js', 'art-shootout.js'].map((f) => read(`public/js/scenes/${f}`)).join('\n');
+const art = ['art.js', 'art-rps.js', 'art-penalty.js', 'art-fans.js', 'art-shootout.js'].map((f) => read(`public/js/scenes/${f}`)).join('\n');
 for (const f of ['rps-duel.js', 'rps.js', 'rps_minus_one.js', 'penalty.js', 'shootout.js']) {
   const src = read(`public/js/scenes/${f}`);
   for (const m of src.matchAll(/K\.sprite\([^,]+,\s*'([a-z0-9-]+)'/g)) assert(art.includes(`'${m[1]}'`) || art.includes(m[1].replace(/-\d+$/, '-')), `${f}: art element ${m[1]} is registered`);

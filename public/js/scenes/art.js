@@ -1,5 +1,6 @@
 // The code-drawn art registry: every scene background, scene element, effect and control icon is drawn here in code
-// (plain SVG built with DuelKit.el, every color a theme token), so the project ships no images at all.
+// (plain SVG built with DuelKit.el, every color a theme token); the one exception is the Penalty stadium and its fans
+// (pictures in public/art/, see art-penalty.js and art-fans.js).
 //
 //   DuelArt.bg[name](K)        -> an SVG <g> filling the 1600x900 scene viewBox (kit.js background())
 //   DuelArt.el[name]           -> { w, h, ax, ay, draw(K) -> <g> drawn in its own w x h box } (kit.js sprite();

@@ -57,7 +57,7 @@
   const GOAL_ART = window.DuelArt?.pen?.goal || { x0: 486, x1: 1114, top: 294, bot: 550, pw: 18, bx0: 552, bx1: 1048, bt: 326, bb: 526 };
   const LAYOUT = {
     goal: GOAL_ART,
-    keeper: { x: 800, y: 549, s: 0.5 }, kicker: { x: 560, y: 892, s: 0.92 }, ks: 0.64, spot: { x: 800, y: 772 }, r: 30,
+    keeper: { x: 800, y: 549, s: 0.5 }, kicker: { x: 560, y: 892, s: 0.92 }, ks: 0.64, spot: { x: 800, y: 752 }, r: 30,
     punchY: 235, bannerY: 470,
   };
 
@@ -89,7 +89,7 @@
       const fans = [];
       for (const [row, ri, where] of S.rows) {
         if (row !== want) continue;
-        const half = 66 * S.s[row], looks = row === 'back' ? 8 : 12;
+        const half = 66 * S.s[row], looks = window.DuelArt?.fans?.looks || 10;
         for (const dx of cols) for (const x of [W / 2 - dx, W / 2 + dx]) {
           if (x - half < 0 || x + half > W) continue;
           const behind = x + half > goal.x0 && x - half < goal.x1;
@@ -287,7 +287,7 @@
         amb(bob, [{ transform: 'translate(0px,0px)' }, { transform: `translate(0px,${-(1.2 + Math.random() * 1.6).toFixed(1)}px)` }, { transform: 'translate(0px,0px)' }],
           { duration: 900 + Math.random() * 900, iterationStart: Math.random() });
         // the same fan cheering (a back-row fan at the back row's smaller size)
-        return { bob, spr, sit, s, cheer: `el-fan-cheer-${n}`, cs: row === 'back' ? s * BACK_K : s, up: false };
+        return { bob, spr, sit, s, cheer: `el-fan-cheer-${n}`, sad: `el-fan-sad-${n}`, cs: row === 'back' ? s * BACK_K : s, up: false };
       });
       // Flags (el-goal-flag), hidden until a goal: the flag's pole foot is (-144, +148) units from its center anchor, so
       // each flag's node origin is the pole foot (it pops up and waves around it).
@@ -305,7 +305,7 @@
       if (!crowd) return;
       crowd.timers.forEach(clearTimeout); crowd.timers.clear();
       crowd.react.forEach((a) => a.cancel()); crowd.react.clear();
-      for (const f of crowd.fans) if (f.up) { f.up = false; f.spr.setSprite(f.sit); f.spr.inner.setAttribute('transform', `scale(${f.s})`); }
+      for (const f of crowd.fans) if (f.up || f.down) { f.up = false; f.down = false; f.spr.setSprite(f.sit); f.spr.inner.setAttribute('transform', `scale(${f.s})`); }
     }
     const crowdLater = (fn, ms) => { const t = life.timeout(() => { crowd.timers.delete(t); fn(); }, ms); if (t) crowd.timers.add(t); };
     // GOAL: everyone jumps up cheering (staggered) and keeps jumping, the flags pop up and wave; all sit down after `ms`.
@@ -339,10 +339,14 @@
       }
       crowdLater(crowdSit, ms);
     }
-    // SAVE / miss: a quick groan dip, the fans sink into their seats (squashed), then sit up again.
-    function crowdGroan() {
-      if (!crowd || K.reduced() || ctx.mini) return;
+    // SAVE / miss: a groan, the fans put their hands on their heads (el-fan-sad-n) and sink into their seats (squashed),
+    // then sit up again.
+    function crowdGroan(ms = 1300) {
+      if (!crowd || ctx.mini) return;
       crowdSit();
+      for (const f of crowd.fans) { f.down = true; f.spr.setSprite(f.sad); f.spr.inner.setAttribute('transform', `scale(${f.cs})`); }
+      crowdLater(crowdSit, ms);
+      if (K.reduced()) return;
       const dip = 7;
       for (const f of crowd.fans) {
         crowd.react.add(f.bob.animate([

@@ -61,7 +61,7 @@ function coverV() {
   for (const id of coverIds()) { try { const st = fs.statSync(path.join(COVER_DIR, `${id}.webp`)); h.update(`${id}:${st.size}:${st.mtimeMs}`); } catch {} }
   return h.digest('hex').slice(0, 10);
 }
-const GAME_SCRIPTS = ['js/scenes/art.js', 'js/scenes/art-rps.js', 'js/scenes/art-penalty.js', 'js/scenes/art-shootout.js', 'js/scenes/rps-duel.js', 'js/scenes/rps.js', 'js/scenes/shootout.js', 'js/scenes/penalty.js', 'js/scenes/rps_minus_one.js', 'js/scenes/preview.js', 'js/tutorial.js'];
+const GAME_SCRIPTS = ['js/scenes/art.js', 'js/scenes/art-rps.js', 'js/scenes/art-penalty.js', 'js/scenes/art-fans.js', 'js/scenes/art-shootout.js', 'js/scenes/rps-duel.js', 'js/scenes/rps.js', 'js/scenes/shootout.js', 'js/scenes/penalty.js', 'js/scenes/rps_minus_one.js', 'js/scenes/preview.js', 'js/tutorial.js'];
 
 // index.html with versioned local files; `meta` = { title, description } for a challenge link's preview.
 async function sendIndex(req, res, meta = null) {

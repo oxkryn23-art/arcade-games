@@ -1,14 +1,16 @@
-// Character rig: simple flat-vector people drawn in code (plain SVG, no images).
-// Load after scenes/kit.js and characters/avatar.js.
+// Character rig: flat-vector cartoon people (plain SVG, no images).
+// Load after scenes/kit.js, figures/avatar.js and figures/figure-art.js.
 //
-// A character is built from layered parts: legs + shoes, the torso (shirt + trousers band), the head (hair behind,
-// ears, face, hair in front) and two NOODLE arms (one cubic Bezier each, no elbows) ending in code-drawn hands that
-// can hold a prop. Character space: the origin is on the ground between the feet, y grows down, about 330 units tall.
+// A character is built from layered parts: legs + shoes, the head (behind the torso, so the collar runs over the neck),
+// the torso (shirt + trousers band) and two NOODLE arms (one cubic Bezier each, no elbows) ending in hands that can
+// hold a prop. The heads (per hairstyle and view), the faces, the hands, the shoes and the torso's outline are the
+// character sheets in art-source/characters/ traced into paths (tools/trace-figures.js -> figure-art.js), each area a
+// color class the rig fills with the player's tokens; the limbs, the sleeves and the trousers band are drawn here. Character space: the origin is on the ground between the feet, y grows down, about 330 units tall.
 // Profile views face right; a mirrored rig (flip) faces left.
 //
 // Poses are data (see REST / POSES): limb endpoints + body/head transforms. rig.to(pose, ms) interpolates every number
 // with easing, so the noodles bend smoothly between poses; discrete fields (hand shapes, back view) switch halfway.
-// Idle life on top of any pose: breathing, blinking and a slight noodle wobble. Reduced motion: no idle loops.
+// Idle life on top of any pose: breathing and a slight noodle wobble. Reduced motion: no idle loops.
 //
 // Looks come from the avatar store (public/js/figures/avatar.js): { skin, hair, hairColor, shirt }. Side 'you' wears
 // mine, side 'opp' the opponent's (with a different shirt when both picked the same one, so the two players never
@@ -35,12 +37,20 @@
   // ---------------- the skeleton (character units, y down, origin on the ground) ----------------
   // The hip line, the neck, the shoulder line, the belly, the bottom of the torso; torso half-widths (front /
   // profile); the head center sits headUp above the neck; R = the head radius.
+  // (the proportions of the model sheet: the head 126 units from its top to the neck, the torso 92, the legs 86)
   const S = {
-    hip: -74, neck: -178, shoulder: -163, belly: -98, bottom: -58,
-    shoulderW: 44, shoulderWSide: 30, hipW: 38, hipWSide: 30,
+    hip: -100, neck: -178, shoulder: -163, belly: -116, bottom: -86,
     hipX: 18, hipXSide: 6, headSide: 6, headUp: 66, R: 58,
   };
-  const SKIN = { id: 'human', skel: S, armW: 15, legW: 16 };
+  const SKIN = { id: 'human', skel: S, armW: 15, legW: 22 };
+  const FA = () => window.DuelFigureArt || null;
+  // the traced torso is a little narrower than the model sheet's: widened by TORSO_XK
+  const TORSO_H = S.bottom - S.neck, TORSO_XK = 1.15;
+  // the head's neck stub reaches STUB_IN units into the torso (the collar runs over it)
+  const STUB_IN = 9;
+  // the shoes: drawn SHOE_K x their traced size, the sole SOLE_DY below the leg's end (a pose's feet end 10 above the
+  // ground)
+  const SHOE_K = 1.08, SOLE_DY = 10;
 
   // ---------------- poses ----------------
   const REST = {
@@ -174,42 +184,47 @@
       u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]];
   }
 
-  // The torso outline in body space (origin at the hip center, y down): rounded shoulders, gently narrowing sides,
-  // a rounded bottom. turn narrows it toward a profile.
-  function torso(turn) {
-    const wS = lerp(S.shoulderW, S.shoulderWSide, turn), wH = lerp(S.hipW, S.hipWSide, turn);
-    const top = S.neck - S.hip, sh = S.shoulder - S.hip + 8, bot = S.bottom - S.hip;
-    const n = wS * 0.42, cx = turn * 4;
-    return `M${f1(cx - n)} ${top}C${f1(cx - wS + 4)} ${top - 1} ${f1(-wS)} ${sh - 10} ${f1(-wS)} ${sh}`
-      + `C${f1(-wS + 2)} ${f1(sh + 30)} ${f1(-wH)} ${f1(bot - 30)} ${f1(-wH)} ${bot - 12}`
-      + `Q${f1(-wH)} ${bot} ${f1(-wH + 14)} ${bot}L${f1(wH - 14)} ${bot}Q${f1(wH)} ${bot} ${f1(wH)} ${bot - 12}`
-      + `C${f1(wH)} ${f1(bot - 30)} ${f1(wS - 2)} ${f1(sh + 30)} ${f1(wS)} ${sh}`
-      + `C${f1(wS)} ${sh - 10} ${f1(cx + wS - 4)} ${top - 1} ${f1(cx + n)} ${top}Z`;
+  // The torso outline in body space (origin at the hip center, y down): the traced T-shirt torso (a soft egg, the
+  // collar on top), blended front -> three-quarter -> side by turn (the back view has its own). torsoPts(turn, back)
+  // gives the outline's points (cached per turn bucket), torso(turn, back) the smooth closed path through them.
+  const TORSOS = new Map();
+  function torsoPts(turn, back = false) {
+    const key = `${back ? 'b' : ''}${Math.round(clamp(turn) * 20)}`;
+    if (TORSOS.has(key)) return TORSOS.get(key);
+    const T = FA()?.torso, t = Math.round(clamp(turn) * 20) / 20, top = S.neck - S.hip;
+    let pts;
+    if (!T) pts = Array.from({ length: 36 }, (_, i) => { const a = -Math.PI / 2 + (i / 36) * Math.PI * 2; return [Math.cos(a) * 0.4, 0.5 + Math.sin(a) * 0.5]; });
+    else if (back) pts = T.back.pts;
+    else {
+      const [A, B, u] = t <= 0.55 ? [T.front.pts, T.three.pts, t / 0.55] : [T.three.pts, T.side.pts, (t - 0.55) / 0.45];
+      pts = A.map((p, i) => [lerp(p[0], B[i][0], u), lerp(p[1], B[i][1], u)]);
+    }
+    const out = pts.map(([x, y]) => [x * TORSO_H * TORSO_XK, top + y * TORSO_H]);
+    out.band = top + (T ? T.front.band : 0.85) * TORSO_H;
+    TORSOS.set(key, out);
+    return out;
   }
-  // The torso's half-width at the height y (body space), measured on the outline torso() draws (sampled once per
-  // turn bucket); -1 above or below it. inTorso(turn, [x, y]): whether a body-space point lies inside the outline.
-  const EDGES = new Map();
-  function edgeTable(turn) {
-    const key = Math.round(clamp(turn) * 20);
-    if (EDGES.has(key)) return EDGES.get(key);
-    const t = key / 20, wS = lerp(S.shoulderW, S.shoulderWSide, t), wH = lerp(S.hipW, S.hipWSide, t);
-    const top = S.neck - S.hip, sh = S.shoulder - S.hip + 8, bot = S.bottom - S.hip, n = wS * 0.42;
-    const pts = [];
-    const seg = (c) => { for (let i = 0; i <= 24; i++) { const p = bez(c, i / 24); pts.push([Math.abs(p[0]), p[1]]); } };
-    seg([[-n, top], [-wS + 4, top - 1], [-wS, sh - 10], [-wS, sh]]);
-    seg([[-wS, sh], [-wS + 2, sh + 30], [-wH, bot - 30], [-wH, bot - 12]]);
-    for (let i = 1; i <= 8; i++) { const u = i / 8; pts.push([wH - 14 * u * u, bot - 12 * (1 - u) * (1 - u)]); }
-    const tab = { top, bot, pts };
-    EDGES.set(key, tab);
-    return tab;
+  const PATHS = new Map();
+  function torso(turn, back = false) {
+    const pts = torsoPts(turn, back);
+    if (PATHS.has(pts)) return PATHS.get(pts);
+    const n = pts.length, P = (i) => pts[(i + n) % n];
+    let d = `M${f1(pts[0][0])} ${f1(pts[0][1])}`;
+    for (let i = 0; i < n; i++) {
+      const p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2), k = 1 / 6;
+      d += `C${f1(p1[0] + (p2[0] - p0[0]) * k)} ${f1(p1[1] + (p2[1] - p0[1]) * k)} ${f1(p2[0] - (p3[0] - p1[0]) * k)} ${f1(p2[1] - (p3[1] - p1[1]) * k)} ${f1(p2[0])} ${f1(p2[1])}`;
+    }
+    PATHS.set(pts, `${d}Z`);
+    return `${d}Z`;
   }
+  // The torso's half-width at the height y (body space), measured on its outline (the wider side); -1 above or below
+  // it. inTorso(turn, [x, y]): whether a body-space point lies inside the outline.
   function edgeAt(turn, y) {
-    const { top, bot, pts } = edgeTable(turn);
-    if (y < top || y > bot) return -1;
+    const pts = torsoPts(turn);
     let best = -1;
-    for (let i = 1; i < pts.length; i++) {
-      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
-      if ((y >= y0 && y <= y1) || (y <= y0 && y >= y1)) best = Math.max(best, y1 === y0 ? Math.max(x0, x1) : lerp(x0, x1, (y - y0) / (y1 - y0)));
+    for (let i = 0; i < pts.length; i++) {
+      const [x0, y0] = pts[i], [x1, y1] = pts[(i + 1) % pts.length];
+      if ((y >= y0 && y <= y1) || (y <= y0 && y >= y1)) best = Math.max(best, Math.abs(y1 === y0 ? Math.max(Math.abs(x0), Math.abs(x1)) : lerp(x0, x1, (y - y0) / (y1 - y0))));
     }
     return best;
   }
@@ -307,8 +322,18 @@
     return capReach(shoulderOf(null, p, k), p[`a${k}`], p[`exact${k}`] >= 0.5).slice(0, 2);
   }
 
+  // ---------------- traced art pieces ----------------
+  // A piece from figure-art.js: the silhouette in the outline color (the gaps between the fills are the drawn lines),
+  // the color areas on top, each class filled by fillOf(class).
+  function artPiece(pc, fillOf, attrs = {}) {
+    const node = g(attrs, el('path', { d: pc.s, fill: T('outline'), 'fill-rule': 'evenodd' }));
+    for (const [cls, d] of pc.f) node.append(el('path', { d, fill: fillOf(cls), 'fill-rule': 'evenodd' }));
+    return node;
+  }
+  const classFill = (c) => (cls) => ({ skin: c.skin, hair: c.hair, shirt: c.shirt, shoe: c.shoe, sole: T('shoe-sole'), glove: T('glove'), band: T('glove-band'), white: T('eye'), mouth: T('mouth'), tongue: T('tongue'), cheek: T('cheek'), pants: c.pants }[cls] || T('outline'));
+
   // ---------------- hands (fingers toward -y, the wrist at the origin) ----------------
-  // One outlined shape from several parts: the outlines under, the fills on top.
+  // One outlined shape from several parts: the outlines under, the fills on top (the fallback while the art is missing).
   function blobs(shapes, fill, w) {
     const o = g({}), f = g({});
     for (const [tag, a] of shapes) {
@@ -318,174 +343,38 @@
     return g({}, o, f);
   }
   const cir = (cx, cy, r) => ['circle', { cx, cy, r }];
-  // The hands are the cartoon hand drawings of the original game, traced into paths (tools/trace-hands.js ->
-  // hand-shapes.js: the back of the hand, the wrist stub on the arm's line): the silhouette in the outline color,
-  // stroked at the rig's outline weight everywhere but across the wrist (where the arm joins), and the skin areas on
-  // top (the gaps between them are the creases). Each shape the scenes ask for maps to a drawing (SHAPE_OF); the keeper's
-  // gloves are the open hand a little bigger in the glove color with a wrist band.
-  const HS = () => window.DuelHandShapes || {};
-  const SHAPE_OF = { ball: 'ready', fist: 'ready', ready: 'ready', rock: 'rock', paper: 'paper', open: 'paper', scissors: 'scissors', point: 'scissors', glove: 'paper' };
-  const GLOVE_K = 1.12;
-  function traced(shape, fill, w, k = 1) {
+  // The hands are the hand sheet traced (figure-art.js hands: the back of the hand, a short wrist stub on the arm's
+  // line): the silhouette, stroked at the rig's outline weight everywhere but across the wrist (where the arm joins),
+  // and the skin (the keeper's glove and its wrist band) on top. Each shape the scenes ask for maps to a drawing.
+  const HS = () => FA()?.hands || {};
+  const SHAPE_OF = { ball: 'ready', fist: 'grip', ready: 'ready', rock: 'rock', paper: 'paper', open: 'open', scissors: 'scissors', point: 'scissors', glove: 'glove' };
+  function traced(shape, c, w) {
     const s = HS()[SHAPE_OF[shape] || 'ready'];
-    if (!s) return blobs([cir(0, -14, 15)], fill, w);
-    return g({ transform: k !== 1 ? `scale(${k})` : null },
-      el('path', { d: s.sil, fill: T('outline') }),
-      el('path', { d: s.open, fill: 'none', stroke: T('outline'), 'stroke-width': f1(w / k * 10) / 10, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt' }),
-      el('path', { d: s.skin, fill }),
+    if (!s) return blobs([cir(0, -14, 15)], c.skin, w);
+    const fill = classFill(c);
+    return g({},
+      el('path', { d: s.s, fill: T('outline'), 'fill-rule': 'evenodd' }),
+      el('path', { d: s.open, fill: 'none', stroke: T('outline'), 'stroke-width': f1(w), 'stroke-linejoin': 'round', 'stroke-linecap': 'butt' }),
+      ...s.f.map(([cls, d]) => el('path', { d, fill: fill(cls), 'fill-rule': 'evenodd' })),
       // the wrist: the skin runs on into the arm (no dark sliver along the cut)
-      el('rect', { x: f1(-s.wi + 0.4), y: -4, width: f1(s.wi * 2 - 0.8), height: 6.5, fill }));
+      el('rect', { x: f1(-s.wi + 0.4), y: -4, width: f1(s.wi * 2 - 0.8), height: 6.5, fill: c.skin }));
   }
   // the wrist stub's half-widths [inner, outer] of a shape at scale 1 (the arm widens into them, see apply)
-  const wristOf = (shape) => { const s = HS()[SHAPE_OF[shape] || 'ready']; const k = shape === 'glove' ? GLOVE_K : 1; return s ? [s.wi * k, s.wo * k] : [SKIN.armW / 2, SKIN.armW / 2 + OUT]; };
-  const glove = (c, w) => {
-    const s = HS().paper, wo = s ? s.wo * GLOVE_K : 12;
-    return g({}, traced('glove', T('glove'), w, GLOVE_K), el('rect', { x: f1(-wo - 1), y: -9, width: f1(wo * 2 + 2), height: 14, rx: 5, fill: T('glove-band'), ...ink, 'stroke-width': w }));
-  };
-  const HANDS = Object.fromEntries(Object.keys(SHAPE_OF).map((shape) => [shape, shape === 'glove' ? glove : (c, w) => traced(shape, c.skin, w)]));
+  const wristOf = (shape) => { const s = HS()[SHAPE_OF[shape] || 'ready']; return s ? [s.wi, s.wo] : [SKIN.armW / 2, SKIN.armW / 2 + OUT]; };
+  const HANDS = Object.fromEntries(Object.keys(SHAPE_OF).map((shape) => [shape, (c, w) => traced(shape, c, w)]));
   // the middle of a hand along the arm (hand frame -y) and its radius (character units at scale 1)
-  const handMidOf = (shape) => { const s = HS()[SHAPE_OF[shape] || 'ready']; const k = shape === 'glove' ? GLOVE_K : 1; return s ? [s.mid * k, s.r * k] : [14, 15]; };
+  const handMidOf = (shape) => { const s = HS()[SHAPE_OF[shape] || 'ready']; return s ? [s.mid, s.r] : [14, 15]; };
   const HAND_MID = Object.fromEntries(Object.keys(SHAPE_OF).map((shape) => [shape, null]));
   for (const shape of Object.keys(HAND_MID)) Object.defineProperty(HAND_MID, shape, { get: () => handMidOf(shape), enumerable: true });
 
-  // ---------------- head: hair styles ----------------
-  // Hair is drawn in two layers: back (behind the head: long hair, a ponytail, a bun) and front (the cap over the top
-  // of the head with its fringe). turn = the head turn (0..1, facing right), R = the head radius.
-  const HAIR = {
-    short: 'Short', crop: 'Crop', curly: 'Curly', long: 'Long', bun: 'Bun', ponytail: 'Ponytail', spiky: 'Spiky', buzz: 'Buzz',
-  };
-  function hairShapes(style, turn, back, color) {
-    const R = S.R, cx = back ? 0 : turn * R * 0.42;
-    const fill = { fill: color, ...ink };
-    const behind = [], front = [];
-    // From behind the hair covers the whole back of the head down to the nape (a small curve of skin above the neck),
-    // hugging the head's outline at the sides: never a bowl over a blank face.
-    const backHair = (nape = 0.74, puff = 3) => {
-      const sy = f1(R * 0.42), sx = f1(R * 0.91 + puff);
-      return el('path', { d: `M${-sx} ${sy}C${f1(-R - puff - 4)} ${f1(-R * 0.35)} ${f1(-R * 0.8)} ${f1(-R - puff - 6)} 0 ${f1(-R - puff - 6)}`
-        + `C${f1(R * 0.8)} ${f1(-R - puff - 6)} ${f1(R + puff + 4)} ${f1(-R * 0.35)} ${sx} ${sy}`
-        + `Q${f1(R * 0.62)} ${f1(R * nape + 4)} ${f1(R * 0.3)} ${f1(R * nape + 2)}Q0 ${f1(R * nape - 6)} ${f1(-R * 0.3)} ${f1(R * nape + 2)}Q${f1(-R * 0.62)} ${f1(R * nape + 4)} ${-sx} ${sy}Z`, ...fill });
-    };
-    const cap = (low = 0.18, fringe = 0.32) => {
-      // the top of the head down to y = -low R at the sides, the fringe a little lower toward the face
-      if (back) return backHair();
-      const l = -R - 3, r = R + 3, y0 = f1(-R * low + 8);
-      return el('path', { d: `M${l} ${y0}C${l - 3} ${f1(-R * 1.35)} ${r + 3} ${f1(-R * 1.35)} ${r} ${y0}`
-        + `Q${f1(cx + R * 0.55)} ${f1(-R * fringe - 14)} ${f1(cx + 4)} ${f1(-R * fringe)}Q${f1(cx - R * 0.5)} ${f1(-R * fringe - 6)} ${l} ${y0}Z`, ...fill });
-    };
-    switch (style) {
-      case 'crop': front.push(cap(0.32, 0.52)); break;
-      case 'buzz':
-        front.push(back ? backHair(0.68, 0) : el('path', { d: `M${-R - 1} ${f1(-R * 0.22)}C${-R - 2} ${f1(-R * 1.32)} ${R + 2} ${f1(-R * 1.32)} ${R + 1} ${f1(-R * 0.22)}Q${f1(cx)} ${f1(-R * 0.74)} ${-R - 1} ${f1(-R * 0.22)}Z`, ...fill }));
-        break;
-      case 'spiky': {
-        const n = 7, pts = [];
-        for (let i = 0; i <= n; i++) {
-          const a = Math.PI * (1 + i / n);
-          pts.push([Math.cos(a) * (R + 5), Math.sin(a) * (R + 5) - 4]);
-          if (i < n) { const am = Math.PI * (1 + (i + 0.5) / n); pts.push([Math.cos(am) * (R + 24) + cx * 0.25, Math.sin(am) * (R + 24) - 4]); }
-        }
-        front.push(el('path', { d: `M${pts.map((p) => `${f1(p[0])} ${f1(p[1])}`).join('L')}Q${f1(cx)} ${f1(back ? -R * 0.1 : -R * 0.42)} ${f1(pts[0][0])} ${f1(pts[0][1])}Z`, ...fill }));
-        if (back) front.push(backHair(0.7, 2));   // over the spikes' lower edge
-        break;
-      }
-      case 'curly': {
-        const balls = [];
-        for (let i = 0; i < 9; i++) { const a = Math.PI * (0.92 + i * 0.145); balls.push(cir(f1(Math.cos(a) * (R + 2) + cx * 0.15), f1(Math.sin(a) * (R + 2) - 4), 19)); }
-        if (back) balls.push(cir(0, 0, R * 0.95), cir(-R * 0.6, R * 0.2, 20), cir(R * 0.6, R * 0.2, 20));
-        else balls.push(['ellipse', { cx: f1(cx), cy: f1(-R * 0.62), rx: R * 0.8, ry: R * 0.4 }]);
-        front.push(blobs(balls, color, OUT / 2));
-        break;
-      }
-      case 'long':
-        behind.push(el('path', { d: `M${-R - 6} ${f1(-R * 0.2)}C${-R - 12} ${f1(R * 0.9)} ${-R - 6} ${f1(R * 1.25)} ${f1(-R * 0.5)} ${f1(R * 1.25)}L${f1(R * 0.5)} ${f1(R * 1.25)}C${R + 6} ${f1(R * 1.25)} ${R + 12} ${f1(R * 0.9)} ${R + 6} ${f1(-R * 0.2)}Z`, ...fill }));
-        front.push(cap(0.05, 0.3));
-        break;
-      // a bun or a ponytail sits behind the head from the front and on top of the hair from behind
-      case 'bun': {
-        const bun = el('circle', { cx: f1(-cx * 0.4), cy: back ? -R * 0.55 : -R - 14, r: 22, ...fill });
-        if (back) front.push(cap(0.2, 0.42), bun);
-        else { behind.push(bun); front.push(cap(0.2, 0.42)); }
-        break;
-      }
-      case 'ponytail': {
-        const bx = back ? 0 : -turn * R * 0.95, by = back ? -R * 0.25 : -R * 0.35;
-        const tail = back
-          ? el('path', { d: `M${f1(bx - 13)} ${f1(by)}Q${f1(bx - 18)} ${f1(by + 50)} ${f1(bx - 4)} ${f1(by + 96)}Q${f1(bx + 18)} ${f1(by + 50)} ${f1(bx + 13)} ${f1(by)}Q${f1(bx)} ${f1(by - 8)} ${f1(bx - 13)} ${f1(by)}Z`, ...fill })
-          : el('path', { d: `M${f1(bx - 12)} ${f1(by)}Q${f1(bx - 34 - turn * 20)} ${f1(by + 40)} ${f1(bx - 18 - turn * 30)} ${f1(by + 92)}Q${f1(bx + 4)} ${f1(by + 60)} ${f1(bx + 12)} ${f1(by)}Z`, ...fill });
-        if (back) front.push(cap(0.22, 0.4), tail, el('ellipse', { cx: f1(bx), cy: f1(by + 2), rx: 9, ry: 6, fill: T('glove-band'), ...ink, 'stroke-width': 3 }));
-        else { behind.push(tail); front.push(cap(0.22, 0.4)); }
-        break;
-      }
-      default: front.push(cap(0.15, 0.36));   // short
-    }
-    return { behind, front };
-  }
-
-  // ---------------- faces ----------------
-  // Eyes, brows and mouth per expression, around the face center; R = the head radius.
-  // neutral, focus, smile, think, grin, joy, oops, sad, meh, shock (expressions.js says which shows when).
-  const FACES = {
-    neutral: { eyes: 'dot', brows: 'flat', mouth: 'smallSmile' },
-    focus: { eyes: 'dot', brows: 'down', mouth: 'flat' },
-    smile: { eyes: 'dot', brows: 'up', mouth: 'smile' },
-    think: { eyes: 'dot', brows: 'one', mouth: 'side', look: [0.6, -0.4] },
-    grin: { eyes: 'happy', brows: 'up', mouth: 'grin', cheeks: true },
-    joy: { eyes: 'happy', brows: 'up', mouth: 'open', cheeks: true },
-    oops: { eyes: 'dot', brows: 'worried', mouth: 'wobble' },
-    sad: { eyes: 'dot', brows: 'worried', mouth: 'frown', look: [0, 0.6] },
-    meh: { eyes: 'half', brows: 'flat', mouth: 'slant' },
-    shock: { eyes: 'wide', brows: 'high', mouth: 'o' },
-  };
-  function faceNode(name) {
-    const F = FACES[name] || FACES.neutral, R = S.R;
-    const root = g({ class: `rig-face rig-face--${name}` });
-    const ex = R * 0.36, ey = -R * 0.05;
-    const eyes = [], pupils = [];
-    for (const s of [-1, 1]) {
-      const eg = g({});
-      let pupil = null;
-      if (F.eyes === 'happy') eg.append(el('path', { d: `M${f1(s * ex - 9)} ${f1(ey + 3)}Q${f1(s * ex)} ${f1(ey - 9)} ${f1(s * ex + 9)} ${f1(ey + 3)}`, fill: 'none', ...ink, 'stroke-width': 4.5 }));
-      else if (F.eyes === 'half') { eg.append(el('path', { d: `M${f1(s * ex - 8)} ${f1(ey)}L${f1(s * ex + 8)} ${f1(ey)}`, fill: 'none', ...ink, 'stroke-width': 4 })); pupil = el('circle', { cx: f1(s * ex), cy: f1(ey + 4), r: 4, fill: T('outline') }); }
-      else if (F.eyes === 'wide') { eg.append(el('circle', { cx: f1(s * ex), cy: f1(ey), r: 10, fill: T('eye'), ...ink, 'stroke-width': 3 })); pupil = el('circle', { cx: f1(s * ex), cy: f1(ey), r: 4.5, fill: T('outline') }); }
-      else pupil = el('ellipse', { cx: f1(s * ex), cy: f1(ey), rx: 5.5, ry: 7, fill: T('outline') });
-      if (pupil) { const pg = g({}, pupil); eg.append(pg); pupils.push(pg); }
-      eg.cy = ey;
-      eyes.push(eg);
-    }
-    const by = -R * 0.3;
-    const brow = (s) => {
-      const x0 = f1(s * ex - 10), x1 = f1(s * ex + 10), mid = f1(s * ex);
-      const inner = s < 0 ? x1 : x0, outer = s < 0 ? x0 : x1;
-      switch (F.brows) {
-        case 'down': return `M${outer} ${f1(by - 4)}L${inner} ${f1(by + 3)}`;
-        case 'up': return `M${x0} ${f1(by - 2)}Q${mid} ${f1(by - 9)} ${x1} ${f1(by - 2)}`;
-        case 'high': return `M${x0} ${f1(by - 8)}Q${mid} ${f1(by - 16)} ${x1} ${f1(by - 8)}`;
-        case 'worried': return `M${outer} ${f1(by + 2)}L${inner} ${f1(by - 6)}`;
-        case 'one': return s > 0 ? `M${x0} ${f1(by - 6)}Q${mid} ${f1(by - 13)} ${x1} ${f1(by - 6)}` : `M${x0} ${f1(by)}L${x1} ${f1(by)}`;
-        default: return `M${x0} ${f1(by - 1)}L${x1} ${f1(by - 1)}`;
-      }
-    };
-    const brows = g({}, ...[-1, 1].map((s) => el('path', { d: brow(s), fill: 'none', ...ink, 'stroke-width': 4.5 })));
-    const my = f1(R * 0.38);
-    const M = {
-      smallSmile: () => el('path', { d: `M-9 ${my - 2}Q0 ${my + 6} 9 ${my - 2}`, fill: 'none', ...ink }),
-      smile: () => el('path', { d: `M-14 ${my - 4}Q0 ${my + 10} 14 ${my - 4}`, fill: 'none', ...ink }),
-      flat: () => el('path', { d: `M-9 ${my}L9 ${my}`, fill: 'none', ...ink }),
-      side: () => el('path', { d: `M-4 ${my + 1}Q6 ${my + 3} 12 ${my - 3}`, fill: 'none', ...ink }),
-      grin: () => el('path', { d: `M-17 ${my - 6}Q0 ${my - 4} 17 ${my - 6}Q12 ${my + 14} 0 ${my + 14}Q-12 ${my + 14} -17 ${my - 6}Z`, fill: T('mouth'), ...ink, 'stroke-width': 3.5 }),
-      open: () => g({}, el('path', { d: `M-16 ${my - 6}Q0 ${my - 8} 16 ${my - 6}Q14 ${my + 20} 0 ${my + 20}Q-14 ${my + 20} -16 ${my - 6}Z`, fill: T('mouth'), ...ink, 'stroke-width': 3.5 }),
-        el('path', { d: `M-8 ${my + 15}Q0 ${my + 9} 8 ${my + 15}Z`, fill: T('tongue') })),
-      wobble: () => el('path', { d: `M-12 ${my + 3}Q-6 ${my - 3} 0 ${my + 2}Q6 ${my + 6} 12 ${my}`, fill: 'none', ...ink }),
-      frown: () => el('path', { d: `M-13 ${my + 6}Q0 ${my - 6} 13 ${my + 6}`, fill: 'none', ...ink }),
-      slant: () => el('path', { d: `M-10 ${my + 2}L10 ${my - 2}`, fill: 'none', ...ink }),
-      o: () => el('ellipse', { cx: 0, cy: my + 2, rx: 7, ry: 9, fill: T('mouth'), ...ink, 'stroke-width': 3.5 }),
-    };
-    const cheeks = F.cheeks ? g({}, ...[-1, 1].map((s) => el('ellipse', { cx: f1(s * R * 0.55), cy: f1(R * 0.2), rx: 9, ry: 5.5, fill: T('cheek'), opacity: 0.6 }))) : null;
-    const nose = el('path', { d: `M2 ${f1(R * 0.06)}Q7 ${f1(R * 0.18)} 0 ${f1(R * 0.22)}`, fill: 'none', ...ink, 'stroke-width': 3.5 });
-    root.append(...(cheeks ? [cheeks] : []), ...eyes, brows, nose, M[F.mouth]());
-    return { g: root, eyes, pupils, look: F.look || null, closed: F.eyes === 'happy' };
-  }
+  // ---------------- heads and faces ----------------
+  // A head is the traced drawing of its hairstyle in one of four views (front, three-quarter, side, back; the turned
+  // ones face right and are mirrored for a head turned left); the front and three-quarter heads carry no face, the
+  // expression is drawn over them at their eyes (head.eye = [x, y, scale]); the side and back views keep their own.
+  const HAIR = { short: 'Short', crop: 'Crop', buzz: 'Buzz', spiky: 'Spiky', curly: 'Curly', long: 'Long', bun: 'Bun', ponytail: 'Ponytail' };
+  // neutral, focus, smile, think, grin, joy, oops, sad, meh, shock (expressions.js says which shows when)
+  const FACES = Object.fromEntries(['neutral', 'focus', 'smile', 'think', 'grin', 'joy', 'oops', 'sad', 'meh', 'shock'].map((n) => [n, n]));
+  const headView = (ht, back) => (back ? 'back' : Math.abs(ht) < 0.3 ? 'front' : Math.abs(ht) < 0.82 ? 'three' : 'side');
 
   // ---------------- looks ----------------
   const A = () => window.DuelAvatar;
@@ -545,7 +434,7 @@
         el('rect', { x: -4000, y: -4000, width: 8000, height: 8000, fill: 'white' }), n.armMaskBody);
       n.armMid = g({ class: 'rig-arms-tucked', mask: `url(#${id}-arms)` });
       n.legs = g({}); n.body = g({}); n.head = g({});
-      n.all.append(el('defs', {}, n.armMask), n.armBack, n.legs, n.body, n.head, n.armMid, n.armFront);
+      n.all.append(el('defs', {}, n.armMask), n.armBack, n.legs, n.head, n.body, n.armMid, n.armFront);
       n.flip.append(n.shadow, n.all);
       this.root.append(n.flip);
 
@@ -560,32 +449,23 @@
       n.legs.append(n.leg1.g, n.foot1, n.leg2.g, n.foot2);
       this.feetKey = null;
 
-      // torso: the shirt, the trousers band at the bottom (clipped to the torso), the neck opening, the outline on top
+      // torso: the shirt, the trousers band at the bottom (clipped to the torso), the outline, the collar (the neck
+      // opening) on top
       n.clip = el('clipPath', { id: `${id}-body` }, el('path', {}));
       n.bodyPath = el('path', { fill: c.shirt });
-      n.pants = el('rect', { x: -60, y: -6, width: 120, height: 40, fill: c.pants, 'clip-path': `url(#${id}-body)` });
-      n.belt = el('path', { fill: 'none', ...ink, 'stroke-width': 3, 'clip-path': `url(#${id}-body)` });
-      n.neck = el('path', { fill: c.skin, ...ink, 'stroke-width': 3 });
+      n.pants = el('rect', { x: -80, y: 0, width: 160, height: 60, fill: c.pants, 'clip-path': `url(#${id}-body)` });
+      n.belt = el('path', { fill: 'none', ...ink, 'stroke-width': 3.5, 'clip-path': `url(#${id}-body)` });
+      n.collar = el('ellipse', { rx: 11, ry: 4.2, fill: c.skin, ...ink, 'stroke-width': 3.5 });
       n.bodyEdge = el('path', { fill: 'none', ...ink });
-      n.body.append(el('defs', {}, n.clip), n.bodyPath, n.pants, n.belt, n.neck, n.bodyEdge);
+      n.body.append(el('defs', {}, n.clip), n.bodyPath, n.pants, n.belt, n.bodyEdge, n.collar);
 
-      // head: hair behind, ears, the head, the face, hair in front
-      n.headInner = g({});
+      // head: the traced head of the hairstyle and view, the face over it
+      n.headInner = g({ class: 'rig-head' });
       n.head.append(n.headInner);
-      n.hairBack = g({ class: 'rig-hair-back' });
-      n.ears = g({});
-      n.headShape = el('ellipse', { cx: 0, cy: 0, rx: S.R, ry: S.R + 2, fill: c.skin, ...ink });
+      n.headArt = g({ class: 'rig-hair' });
       n.faceSlot = g({ class: 'rig-face-slot' });
-      n.hairFront = g({ class: 'rig-hair' });
-      n.headInner.append(n.hairBack, n.ears, n.headShape, n.faceSlot, n.hairFront);
-      n.faces = {};
-      for (const name of Object.keys(FACES)) {
-        const f = faceNode(name);
-        f.g.style.display = 'none';
-        n.faces[name] = f;
-        n.faceSlot.append(f.g);
-      }
-      this.hairKey = null;
+      n.headInner.append(n.headArt, n.faceSlot);
+      this.hairKey = null; this.faceKey = null;
 
       // arms: outline + fill noodle, the short sleeve (shirt color) over the arm's root, the held prop, the hand
       const arm = (k) => {
@@ -643,11 +523,10 @@
 
     // --- expressions ---
     face(name, force = false) {
-      const faces = this.n.faces;
-      if (!faces[name]) name = 'neutral';
+      if (!FACES[name]) name = 'neutral';
       if (name === this.faceName && !force) return this;
-      for (const [k, f] of Object.entries(faces)) f.g.style.display = k === name ? '' : 'none';
       this.faceName = name;
+      this.faceKey = null;
       // place the new face for the current view and gaze right away (with reduced motion no idle frame would, and the
       // face stayed centered, looking at the camera, until the next tween)
       if (this.cur && !this.dead) this.apply(this.cur, performance.now());
@@ -722,43 +601,34 @@
       if (this.tw || (this.idleOn && !K.reduced()) || this.blinking) this.apply(this.cur, now);
     }
 
-    // The hair and ears for a view (rebuilt when the look, the view or the quantized turn changes).
-    dressHead(turn, back) {
-      const q = Math.round(turn * 10) / 10;
-      const key = `${this.look.hair}:${this.look.hairColor}:${this.look.skin}:${back ? 1 : 0}:${q}`;
-      if (key === this.hairKey) return;
-      this.hairKey = key;
-      const n = this.n, h = hairShapes(this.look.hair, q, back, this.c.hair);
-      n.hairBack.innerHTML = ''; n.hairFront.innerHTML = '';
-      n.hairBack.append(...h.behind); n.hairFront.append(...h.front);
-      // ears: the near one always, the far one until a near profile; from behind both, peeking out at the sides
-      n.ears.innerHTML = '';
-      const ear = (x) => el('ellipse', { cx: f1(x), cy: 6, rx: 10, ry: 14, fill: this.c.skin, ...ink });
-      if (back) n.ears.append(ear(-S.R + 1), ear(S.R - 1));
-      else {
-        if (q < 0.7) n.ears.append(ear(S.R * (1 - q * 0.9) - 2));
-        n.ears.append(ear(-S.R + 2 + q * S.R * 0.7));
+    // The head drawing for a view (rebuilt when the look or the view changes) and the face over it.
+    dressHead(view) {
+      const key = `${this.look.hair}:${this.look.hairColor}:${this.look.skin}:${this.look.shirt}:${view}`;
+      const art = FA()?.heads?.[this.look.hair]?.[view] || FA()?.heads?.short?.[view];
+      if (key !== this.hairKey) {
+        this.hairKey = key; this.faceKey = null;
+        this.n.headArt.innerHTML = '';
+        if (art) this.n.headArt.append(artPiece(art, classFill(this.c)));
+        else this.n.headArt.append(el('circle', { cx: 0, cy: -68, r: S.R, fill: this.c.skin, ...ink }));
       }
+      const fk = `${view}:${this.faceName}`;
+      if (fk === this.faceKey) return;
+      this.faceKey = fk;
+      const slot = this.n.faceSlot, face = art?.eye && FA()?.faces?.[view]?.[this.faceName || 'neutral'];
+      slot.innerHTML = '';
+      if (face) slot.append(artPiece(face, classFill(this.c), { transform: `translate(${art.eye[0]} ${art.eye[1]}) scale(${art.eye[2]})` }));
     }
 
     // --- drawing a pose ---
     apply(p0, now) {
       const n = this.n;
       const p = { ...p0 };
-      let blink = 1;
       if (this.idleOn && !K.reduced()) {
         const t = (now - this.t0) / 1000;
         p.bsy = p.bsy * (1 + 0.012 * Math.sin(t * 2.4));
         p.hy = p.hy - 1.4 * Math.sin(t * 2.4);
         const w = (i) => 0.06 * Math.sin(t * 3.1 + i * 1.7);
         p.a1 = [p.a1[0], p.a1[1], p.a1[2] + w(1)]; p.a2 = [p.a2[0], p.a2[1], p.a2[2] + w(2)];
-        const f = n.faces[this.faceName];
-        if (f && !f.closed) {
-          if (now > this.blinkAt) { this.blinkStart = now; this.blinkAt = now + 2200 + Math.random() * 3200; }
-          const bt = (now - (this.blinkStart || -1e9)) / 140;
-          this.blinking = bt < 1;
-          if (bt < 1) blink = Math.max(0.08, Math.abs(1 - 2 * bt));
-        }
       }
       const turn = clamp(p.turn), back = p.back >= 0.5;
       if (p.sit) { const dy = S.bottom * p.sit; for (const k of ['a1', 'a2', 'l1', 'l2']) p[k] = [p[k][0], p[k][1] + dy, p[k][2]]; }
@@ -773,13 +643,16 @@
       const a = p.brot * D2R, ca = Math.cos(a), sa = Math.sin(a);
       const B = ([x, y]) => { const yy = y * p.bsy; return [p.bx + x * ca - yy * sa, S.hip + p.by + x * sa + yy * ca]; };
       n.body.setAttribute('transform', `translate(${f1(p.bx)} ${f1(S.hip + p.by)}) rotate(${f1(p.brot)}) scale(1 ${f1(p.bsy * 1000) / 1000})`);
-      const d = torso(turn);
+      const d = torso(turn, back), tp = torsoPts(turn, back);
       n.bodyPath.setAttribute('d', d); n.clip.firstChild.setAttribute('d', d); n.bodyEdge.setAttribute('d', d);
-      const wH = lerp(S.hipW, S.hipWSide, turn);
-      n.belt.setAttribute('d', `M${f1(-wH - 2)} -6L${f1(wH + 2)} -6`);
-      // the neck opening: a small round collar in the skin color (not from behind)
-      const top = S.neck - S.hip, nx = turn * 8;
-      n.neck.setAttribute('d', back ? '' : `M${f1(nx - 13)} ${top + 1}Q${f1(nx)} ${f1(top + 16 - turn * 4)} ${f1(nx + 13)} ${top + 1}Z`);
+      // the trousers band from the band line down, its top a gentle curve
+      const by = tp.band, bw = edgeAt(turn, by) + 6;
+      n.pants.setAttribute('y', f1(by));
+      n.belt.setAttribute('d', `M${f1(-bw)} ${f1(by - 1)}Q0 ${f1(by + 4)} ${f1(bw)} ${f1(by - 1)}`);
+      // the collar: a small opening in the skin color on top of the torso, the neck (the head's stub) behind it
+      const top = S.neck - S.hip;
+      n.collar.setAttribute('cx', f1(back ? 0 : turn * 3)); n.collar.setAttribute('cy', f1(top + 3));
+      n.collar.setAttribute('rx', f1(11 - 3 * turn));
 
       // legs + shoes
       const hipX = lerp(S.hipX, S.hipXSide, turn);
@@ -787,28 +660,15 @@
       for (const [leg, foot, end, hx, ft] of [[n.leg1, n.foot1, p.l1, -hipX, p.f1], [n.leg2, n.foot2, p.l2, hipX, p.f2]]) {
         const nd = noodle(B([hx, -2]), end, end[2]);
         leg.o.setAttribute('d', nd.d); leg.f.setAttribute('d', nd.d);
-        foot.setAttribute('transform', `translate(${f1(end[0])} ${f1(end[1] + 2)}) rotate(${f1(ft)})`);
+        foot.setAttribute('transform', `translate(${f1(end[0])} ${f1(end[1] + SOLE_DY)}) rotate(${f1(ft)})`);
       }
 
       // head
       const neck = B([lerp(0, S.headSide, turn), S.neck - S.hip]);
       n.head.setAttribute('transform', `translate(${f1(neck[0] + p.hx)} ${f1(neck[1] + p.hy)}) rotate(${f1(p.brot + p.hrot)})`);
-      n.headInner.setAttribute('transform', `translate(0 ${-S.headUp})`);
-      const ht = clamp(turn + p.ht, -1, 1), mirror = ht < 0 ? 'scale(-1 1)' : '';
-      this.dressHead(Math.abs(ht), back);
-      n.hairBack.setAttribute('transform', mirror); n.hairFront.setAttribute('transform', mirror); n.ears.setAttribute('transform', mirror);
-      n.faceSlot.style.display = back ? 'none' : '';
-      const f = n.faces[this.faceName];
-      if (f && !back) {
-        const k = 1 - Math.abs(ht) * 0.35;
-        f.g.setAttribute('transform', `translate(${f1(ht * S.R * 0.42)} 0) scale(${f1(k * 100) / 100} 1)`);
-        const look = f.look || [0, 0], lx = p.lx || look[0], ly = p.ly || look[1];
-        f.pupils.forEach((pu) => pu.setAttribute('transform', `translate(${f1(lx * 4)} ${f1(ly * 4)})`));
-        f.eyes.forEach((e) => e.setAttribute('transform', blink < 1 ? `translate(0 ${f1(e.cy)}) scale(1 ${f1(blink * 100) / 100}) translate(0 ${f1(-e.cy)})` : ''));
-        // a near profile: the far eye slides behind the head
-        const far = f.eyes[ht >= 0 ? 1 : 0], near = f.eyes[ht >= 0 ? 0 : 1];
-        far.style.opacity = String(clamp((0.85 - Math.abs(ht)) / 0.15)); near.style.opacity = '';
-      }
+      const ht = clamp(turn + p.ht, -1, 1);
+      n.headInner.setAttribute('transform', `translate(0 ${STUB_IN})${ht < 0 && !back ? ' scale(-1 1)' : ''}`);
+      this.dressHead(headView(ht, back));
 
       // arms (ARMS): a turned view draws the near arm (a1) in front under a short sleeve and the far arm (a2) behind
       // the body; a front / back view tucks both behind the torso (an arm whose hand is in front of the body is drawn
@@ -888,18 +748,17 @@
       }
     }
 
-    // Shoes per view: a rounded shoe, its toe pointing forward (+x) in the turned views.
+    // Shoes per view: the traced sneakers (figure-art.js shoes[view] = [left, right]), the ankle opening's middle on the
+    // leg's end, the sole on the ground.
     dressFeet(view) {
       if (view === this.feetKey) return;
       this.feetKey = view;
+      const art = FA()?.shoes?.[view];
       for (const k of [1, 2]) {
         const node = this.n[`foot${k}`];
         node.innerHTML = '';
-        const dx = view === 'side' ? 10 : view === 'three' ? 6 : 0;
-        const w = view === 'side' || view === 'three' ? 21 : 15;
-        node.append(
-          el('path', { d: `M${-w + dx - 6} 2Q${-w + dx - 6} -14 ${dx - 4} -14Q${w + dx + 4} -14 ${w + dx + 6} 0Q${w + dx + 6} 6 ${w + dx} 6L${-w + dx} 6Q${-w + dx - 6} 6 ${-w + dx - 6} 2Z`, fill: this.c.shoe, ...ink }),
-          el('path', { d: `M${-w + dx - 3} 3.5L${w + dx + 3} 3.5`, fill: 'none', stroke: T('shoe-sole'), 'stroke-width': 2.5, 'stroke-linecap': 'round' }));
+        if (art) node.append(artPiece(art[k - 1], classFill(this.c), { transform: `scale(${SHOE_K})` }));
+        else node.append(el('ellipse', { cx: 4, cy: -8, rx: 20, ry: 9, fill: this.c.shoe, ...ink }));
       }
     }
 
@@ -941,7 +800,7 @@
     let svg;
     if (body) svg = K.el('svg', { viewBox: '-170 -352 340 372', class: 'figure-avatar-svg figure-figure-svg', 'aria-hidden': 'true' });
     else {
-      const cy = S.neck - S.headUp + 10, size = 176;
+      const cy = S.neck - S.headUp + 6, size = 206;   // room for the widest hair (curly) and the tallest (spiky, bun)
       svg = K.el('svg', { viewBox: `${-size / 2} ${f1(cy - size / 2)} ${size} ${size}`, class: 'figure-avatar-svg', 'aria-hidden': 'true' });
       r.n.shadow.remove(); r.n.legs.remove(); r.n.armBack.remove(); r.n.armMid.remove(); r.n.armFront.remove();
     }
