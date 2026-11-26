@@ -83,8 +83,8 @@
   const FENCE_TOP = (x) => -68 - (x + 44) * 0.13 - SINK;
   // The revolver's grip sits in the fist (the prop's origin is the grip top; the fist is ~14 along the hand).
   const GRIP = [14, -12, 0];
-  const FRONT = { turn: 0.2, ht: 0.4, lx: 0.9, ...LEGS };
-  const FREE = { a1: [-46, FENCE_TOP(-46) - 11, 0.35], h1: 'fist' };   // the near hand on the fence top
+  const FRONT = { turn: 0.5, ht: 0.25, lx: 1, ...LEGS };   // three-quarters toward the other duelist, eyes on them
+  const FREE = { a1: [-46, FENCE_TOP(-46) - 11, 0.08], h1: 'fist', r1: 84 };   // the near hand on the fence top
   // The level gun hand: [x from the body center, y from the neck]; AIM_R = the revolver's level angle.
   const ARM = [134, -22], AIM_R = -3;
   const P = {

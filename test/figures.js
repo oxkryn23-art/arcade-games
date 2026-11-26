@@ -49,7 +49,7 @@ const localStorage = { getItem: (k) => store[k] ?? null, setItem: (k, v) => { st
 const sandbox = { window, document, localStorage, performance: { now: () => 0 }, requestAnimationFrame: () => 0, setTimeout, clearTimeout, console, Math, Promise, JSON };
 window.localStorage = localStorage;
 vm.createContext(sandbox);
-for (const f of ['scenes/kit.js', 'figures/avatar.js', 'figures/rig.js', 'figures/expressions.js', 'figures/props.js']) {
+for (const f of ['scenes/kit.js', 'figures/avatar.js', 'figures/hand-shapes.js', 'figures/rig.js', 'figures/expressions.js', 'figures/props.js']) {
   vm.runInContext(fs.readFileSync(path.join(JS, f), 'utf8'), sandbox, { filename: f });
 }
 const M = window.DuelFigures, A = window.DuelAvatar, X = window.DuelExpressions;

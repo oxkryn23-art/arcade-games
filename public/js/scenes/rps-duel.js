@@ -64,7 +64,7 @@
     const t = STAGE.arm[side], B = bodyOf(side);
     const arm = (key, gest, extra = {}) => {
       const [a, r, hs] = handAt(key);
-      return { ...B.base, ...B.free, [`a${t}`]: a, [`r${t}`]: r, [`hs${t}`]: hs, [`h${t}`]: gest || 'ready', ...extra };
+      return { ...B.base, ...B.free, [`a${t}`]: a, [`r${t}`]: r, [`hs${t}`]: hs, [`h${t}`]: gest || 'ready', [`over${t}`]: 1, ...extra };
     };
     return {
       ready: arm('ready'),
@@ -109,14 +109,14 @@
     const SA = SLOTS;
     const both = (key, pair, extra = {}) => {
       const hs = two(key), o = { ...B.base };
-      for (const slot of [0, 1]) { const k = SA[slot]; o[`a${k}`] = hs[slot][0]; o[`r${k}`] = hs[slot][1]; o[`hs${k}`] = hs[slot][2]; o[`h${k}`] = pair ? pair[slot] : 'ready'; }
+      for (const slot of [0, 1]) { const k = SA[slot]; o[`a${k}`] = hs[slot][0]; o[`r${k}`] = hs[slot][1]; o[`hs${k}`] = hs[slot][2]; o[`h${k}`] = pair ? pair[slot] : 'ready'; o[`over${k}`] = 1; }
       return { ...o, ...extra };
     };
     // the kept hand forward on the middle line, the other dropped to the lap or the table (it keeps its gesture, so it
     // doesn't flicker)
     const keep = (slot, g1, g0, extra = {}) => {
       const k = SA[slot], d = 3 - k, [a, r, hs] = fwd('keep');
-      return { ...B.base, [`a${k}`]: a, [`h${k}`]: g1, [`hs${k}`]: hs, [`r${k}`]: r, [`a${d}`]: B.drop[d - 1], [`h${d}`]: g0 || 'ready', [`hs${d}`]: 0.8, [`r${d}`]: null, ...extra };
+      return { ...B.base, [`a${k}`]: a, [`h${k}`]: g1, [`hs${k}`]: hs, [`r${k}`]: r, [`over${k}`]: 1, [`a${d}`]: B.drop[d - 1], [`h${d}`]: g0 || 'ready', [`hs${d}`]: 0.8, [`r${d}`]: null, ...extra };
     };
     const at = (slot, key, extra = {}) => { const [a, r] = fwd(key); return { [`a${SA[slot]}`]: a, [`r${SA[slot]}`]: r, ...extra }; };
     return {

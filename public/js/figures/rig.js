@@ -62,8 +62,10 @@
     sit: 0,                             // 1 = seated: the character drops so the torso's bottom rests on the origin
     behind: 0,                          // 1 = both arms behind the body (a back view reaching forward)
     exact1: 0, exact2: 0,               // 1 = the hand stays exactly at a1 / a2 (no reach limit, see REACH): a hand on a prop
+    over1: 0, over2: 0,                 // 1 = that arm is drawn IN FRONT of the body from its anchor under a short sleeve
+                                        // (a far arm reaching across the table, a hand in front of the chest)
   };
-  const DISCRETE = new Set(['h1', 'h2', 'back', 'front1', 'behind', 'exact1', 'exact2']);
+  const DISCRETE = new Set(['h1', 'h2', 'back', 'front1', 'behind', 'exact1', 'exact2', 'over1', 'over2']);
 
   const POSES = {
     idle: {},
@@ -315,33 +317,36 @@
     }
     return g({}, o, f);
   }
-  // a rounded rect part, rotated by rot around (cx, cy) (default: its bottom center)
-  const rr = (x, y, w, h, r, rot = 0, cx = x + w / 2, cy = y + h) => ['rect', { x, y, width: w, height: h, rx: r, transform: rot ? `rotate(${rot} ${cx} ${cy})` : null }];
   const cir = (cx, cy, r) => ['circle', { cx, cy, r }];
-  const crease = (d, w) => el('path', { d, fill: 'none', stroke: T('outline'), 'stroke-width': w, 'stroke-linecap': 'round' });
-  const HANDS = {
-    // a relaxed closed hand
-    ball: (c, w) => blobs([cir(0, -14, 15)], c.skin, w),
-    // a fist: the knuckles toward -y, the thumb folded over
-    fist: (c, w) => g({}, blobs([rr(-16, -36, 32, 32, 13)], c.skin, w), crease('M-6 -33L-6 -25M4 -33L4 -25', w * 0.6), blobs([rr(-18, -22, 16, 12, 6)], c.skin, w)),
-    // an open hand, the fingers spread
-    open: (c, w) => blobs([rr(-8, -60, 9, 30, 4.5, -14), rr(-1, -64, 9, 32, 4.5, -3), rr(7, -60, 9, 30, 4.5, 8), rr(13, -50, 8, 24, 4, 22),
-      rr(-15, -40, 32, 30, 12), rr(-24, -32, 9, 20, 4.5, -30)], c.skin, w),
-    // goalkeeper gloves: a padded open hand with a wrist band
-    glove: (c, w) => g({}, blobs([rr(-12, -74, 13, 38, 6.5, -14), rr(-1, -80, 13, 42, 6.5, -3), rr(10, -74, 13, 38, 6.5, 10), rr(18, -62, 12, 30, 6, 24),
-      rr(-20, -48, 44, 40, 15), rr(-38, -42, 13, 28, 6.5, -42)], T('glove'), w), blobs([rr(-18, -14, 40, 16, 5)], T('glove-band'), w)),
-    // one finger pointing
-    point: (c, w) => g({}, blobs([rr(-4, -66, 11, 40, 5.5), rr(-16, -36, 32, 30, 13)], c.skin, w), blobs([rr(-18, -22, 14, 12, 6)], c.skin, w)),
-    // rock / paper / scissors, seen from the side, the fingers toward -y (the opponent): big, readable shapes
-    rock: (c, w) => g({}, blobs([rr(-18, -40, 36, 36, 15)], c.skin, w), crease('M-9 -37L-9 -28M0 -38L0 -29M9 -37L9 -28', w * 0.6), blobs([rr(-22, -24, 18, 13, 6.5)], c.skin, w)),
-    paper: (c, w) => g({}, blobs([rr(-14, -72, 10, 40, 5), rr(-4, -76, 10, 44, 5), rr(6, -74, 10, 42, 5), rr(15, -66, 9, 34, 4.5, 6), rr(-17, -40, 36, 34, 13), rr(-25, -34, 10, 22, 5, -24)], c.skin, w),
-      crease('M-4 -40L-4 -46M6 -40L6 -46', w * 0.5)),
-    scissors: (c, w) => g({}, blobs([rr(-14, -80, 11, 50, 5.5, -12), rr(3, -80, 11, 50, 5.5, 12), rr(-18, -40, 36, 36, 15)], c.skin, w),
-      crease('M-4 -14L6 -14', w * 0.6), blobs([rr(-22, -24, 18, 13, 6.5)], c.skin, w)),
+  // The hands are the cartoon hand drawings of the original game, traced into paths (tools/trace-hands.js ->
+  // hand-shapes.js: the back of the hand, the wrist stub on the arm's line): the silhouette in the outline color,
+  // stroked at the rig's outline weight everywhere but across the wrist (where the arm joins), and the skin areas on
+  // top (the gaps between them are the creases). Each shape the scenes ask for maps to a drawing (SHAPE_OF); the keeper's
+  // gloves are the open hand a little bigger in the glove color with a wrist band.
+  const HS = () => window.DuelHandShapes || {};
+  const SHAPE_OF = { ball: 'ready', fist: 'ready', ready: 'ready', rock: 'rock', paper: 'paper', open: 'paper', scissors: 'scissors', point: 'scissors', glove: 'paper' };
+  const GLOVE_K = 1.12;
+  function traced(shape, fill, w, k = 1) {
+    const s = HS()[SHAPE_OF[shape] || 'ready'];
+    if (!s) return blobs([cir(0, -14, 15)], fill, w);
+    return g({ transform: k !== 1 ? `scale(${k})` : null },
+      el('path', { d: s.sil, fill: T('outline') }),
+      el('path', { d: s.open, fill: 'none', stroke: T('outline'), 'stroke-width': f1(w / k * 10) / 10, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt' }),
+      el('path', { d: s.skin, fill }),
+      // the wrist: the skin runs on into the arm (no dark sliver along the cut)
+      el('rect', { x: f1(-s.wi + 0.4), y: -4, width: f1(s.wi * 2 - 0.8), height: 6.5, fill }));
+  }
+  // the wrist stub's half-widths [inner, outer] of a shape at scale 1 (the arm widens into them, see apply)
+  const wristOf = (shape) => { const s = HS()[SHAPE_OF[shape] || 'ready']; const k = shape === 'glove' ? GLOVE_K : 1; return s ? [s.wi * k, s.wo * k] : [SKIN.armW / 2, SKIN.armW / 2 + OUT]; };
+  const glove = (c, w) => {
+    const s = HS().paper, wo = s ? s.wo * GLOVE_K : 12;
+    return g({}, traced('glove', T('glove'), w, GLOVE_K), el('rect', { x: f1(-wo - 1), y: -9, width: f1(wo * 2 + 2), height: 14, rx: 5, fill: T('glove-band'), ...ink, 'stroke-width': w }));
   };
-  HANDS.ready = HANDS.fist;   // the pumping fist before a throw
+  const HANDS = Object.fromEntries(Object.keys(SHAPE_OF).map((shape) => [shape, shape === 'glove' ? glove : (c, w) => traced(shape, c.skin, w)]));
   // the middle of a hand along the arm (hand frame -y) and its radius (character units at scale 1)
-  const HAND_MID = { ball: [14, 15], fist: [20, 20], ready: [20, 20], rock: [22, 22], paper: [40, 34], scissors: [42, 36], open: [36, 32], glove: [42, 40], point: [30, 24] };
+  const handMidOf = (shape) => { const s = HS()[SHAPE_OF[shape] || 'ready']; const k = shape === 'glove' ? GLOVE_K : 1; return s ? [s.mid * k, s.r * k] : [14, 15]; };
+  const HAND_MID = Object.fromEntries(Object.keys(SHAPE_OF).map((shape) => [shape, null]));
+  for (const shape of Object.keys(HAND_MID)) Object.defineProperty(HAND_MID, shape, { get: () => handMidOf(shape), enumerable: true });
 
   // ---------------- head: hair styles ----------------
   // Hair is drawn in two layers: back (behind the head: long hair, a ponytail, a bun) and front (the cap over the top
@@ -353,9 +358,17 @@
     const R = S.R, cx = back ? 0 : turn * R * 0.42;
     const fill = { fill: color, ...ink };
     const behind = [], front = [];
+    // From behind the hair covers the whole back of the head down to the nape (a small curve of skin above the neck),
+    // hugging the head's outline at the sides: never a bowl over a blank face.
+    const backHair = (nape = 0.74, puff = 3) => {
+      const sy = f1(R * 0.42), sx = f1(R * 0.91 + puff);
+      return el('path', { d: `M${-sx} ${sy}C${f1(-R - puff - 4)} ${f1(-R * 0.35)} ${f1(-R * 0.8)} ${f1(-R - puff - 6)} 0 ${f1(-R - puff - 6)}`
+        + `C${f1(R * 0.8)} ${f1(-R - puff - 6)} ${f1(R + puff + 4)} ${f1(-R * 0.35)} ${sx} ${sy}`
+        + `Q${f1(R * 0.62)} ${f1(R * nape + 4)} ${f1(R * 0.3)} ${f1(R * nape + 2)}Q0 ${f1(R * nape - 6)} ${f1(-R * 0.3)} ${f1(R * nape + 2)}Q${f1(-R * 0.62)} ${f1(R * nape + 4)} ${-sx} ${sy}Z`, ...fill });
+    };
     const cap = (low = 0.18, fringe = 0.32) => {
       // the top of the head down to y = -low R at the sides, the fringe a little lower toward the face
-      if (back) return el('path', { d: `M${-R - 3} ${f1(R * 0.25)}C${-R - 6} ${f1(-R * 1.3)} ${R + 6} ${f1(-R * 1.3)} ${R + 3} ${f1(R * 0.25)}Q0 ${f1(R * 0.55)} ${-R - 3} ${f1(R * 0.25)}Z`, ...fill });
+      if (back) return backHair();
       const l = -R - 3, r = R + 3, y0 = f1(-R * low + 8);
       return el('path', { d: `M${l} ${y0}C${l - 3} ${f1(-R * 1.35)} ${r + 3} ${f1(-R * 1.35)} ${r} ${y0}`
         + `Q${f1(cx + R * 0.55)} ${f1(-R * fringe - 14)} ${f1(cx + 4)} ${f1(-R * fringe)}Q${f1(cx - R * 0.5)} ${f1(-R * fringe - 6)} ${l} ${y0}Z`, ...fill });
@@ -363,8 +376,7 @@
     switch (style) {
       case 'crop': front.push(cap(0.32, 0.52)); break;
       case 'buzz':
-        front.push(el('path', { d: back ? `M${-R - 1} 4C${-R - 2} ${f1(-R * 1.3)} ${R + 2} ${f1(-R * 1.3)} ${R + 1} 4Q0 ${f1(R * 0.3)} ${-R - 1} 4Z`
-          : `M${-R - 1} ${f1(-R * 0.22)}C${-R - 2} ${f1(-R * 1.32)} ${R + 2} ${f1(-R * 1.32)} ${R + 1} ${f1(-R * 0.22)}Q${f1(cx)} ${f1(-R * 0.74)} ${-R - 1} ${f1(-R * 0.22)}Z`, ...fill }));
+        front.push(back ? backHair(0.68, 0) : el('path', { d: `M${-R - 1} ${f1(-R * 0.22)}C${-R - 2} ${f1(-R * 1.32)} ${R + 2} ${f1(-R * 1.32)} ${R + 1} ${f1(-R * 0.22)}Q${f1(cx)} ${f1(-R * 0.74)} ${-R - 1} ${f1(-R * 0.22)}Z`, ...fill }));
         break;
       case 'spiky': {
         const n = 7, pts = [];
@@ -373,7 +385,8 @@
           pts.push([Math.cos(a) * (R + 5), Math.sin(a) * (R + 5) - 4]);
           if (i < n) { const am = Math.PI * (1 + (i + 0.5) / n); pts.push([Math.cos(am) * (R + 24) + cx * 0.25, Math.sin(am) * (R + 24) - 4]); }
         }
-        front.push(el('path', { d: `M${pts.map((p) => `${f1(p[0])} ${f1(p[1])}`).join('L')}Q${f1(cx)} ${f1(back ? R * 0.4 : -R * 0.42)} ${f1(pts[0][0])} ${f1(pts[0][1])}Z`, ...fill }));
+        front.push(el('path', { d: `M${pts.map((p) => `${f1(p[0])} ${f1(p[1])}`).join('L')}Q${f1(cx)} ${f1(back ? -R * 0.1 : -R * 0.42)} ${f1(pts[0][0])} ${f1(pts[0][1])}Z`, ...fill }));
+        if (back) front.push(backHair(0.7, 2));   // over the spikes' lower edge
         break;
       }
       case 'curly': {
@@ -388,14 +401,20 @@
         behind.push(el('path', { d: `M${-R - 6} ${f1(-R * 0.2)}C${-R - 12} ${f1(R * 0.9)} ${-R - 6} ${f1(R * 1.25)} ${f1(-R * 0.5)} ${f1(R * 1.25)}L${f1(R * 0.5)} ${f1(R * 1.25)}C${R + 6} ${f1(R * 1.25)} ${R + 12} ${f1(R * 0.9)} ${R + 6} ${f1(-R * 0.2)}Z`, ...fill }));
         front.push(cap(0.05, 0.3));
         break;
-      case 'bun':
-        behind.push(el('circle', { cx: f1(-cx * 0.4), cy: -R - 14, r: 22, ...fill }));
-        front.push(cap(0.2, 0.42));
+      // a bun or a ponytail sits behind the head from the front and on top of the hair from behind
+      case 'bun': {
+        const bun = el('circle', { cx: f1(-cx * 0.4), cy: back ? -R * 0.55 : -R - 14, r: 22, ...fill });
+        if (back) front.push(cap(0.2, 0.42), bun);
+        else { behind.push(bun); front.push(cap(0.2, 0.42)); }
         break;
+      }
       case 'ponytail': {
-        const bx = back ? 0 : -turn * R * 0.95, by = back ? -R * 0.1 : -R * 0.35;
-        behind.push(el('path', { d: `M${f1(bx - 12)} ${f1(by)}Q${f1(bx - 34 - turn * 20)} ${f1(by + 40)} ${f1(bx - 18 - turn * 30)} ${f1(by + 92)}Q${f1(bx + 4)} ${f1(by + 60)} ${f1(bx + 12)} ${f1(by)}Z`, ...fill }));
-        front.push(cap(0.22, 0.4));
+        const bx = back ? 0 : -turn * R * 0.95, by = back ? -R * 0.25 : -R * 0.35;
+        const tail = back
+          ? el('path', { d: `M${f1(bx - 13)} ${f1(by)}Q${f1(bx - 18)} ${f1(by + 50)} ${f1(bx - 4)} ${f1(by + 96)}Q${f1(bx + 18)} ${f1(by + 50)} ${f1(bx + 13)} ${f1(by)}Q${f1(bx)} ${f1(by - 8)} ${f1(bx - 13)} ${f1(by)}Z`, ...fill })
+          : el('path', { d: `M${f1(bx - 12)} ${f1(by)}Q${f1(bx - 34 - turn * 20)} ${f1(by + 40)} ${f1(bx - 18 - turn * 30)} ${f1(by + 92)}Q${f1(bx + 4)} ${f1(by + 60)} ${f1(bx + 12)} ${f1(by)}Z`, ...fill });
+        if (back) front.push(cap(0.22, 0.4), tail, el('ellipse', { cx: f1(bx), cy: f1(by + 2), rx: 9, ry: 6, fill: T('glove-band'), ...ink, 'stroke-width': 3 }));
+        else { behind.push(tail); front.push(cap(0.22, 0.4)); }
         break;
       }
       default: front.push(cap(0.15, 0.36));   // short
@@ -580,8 +599,11 @@
         const sleeve = g({ class: 'rig-sleeve' }, sO, sF, cover);
         const prop = g({}); const propInner = g({}); prop.append(propInner);
         const hand = g({}); const handInner = g({}); hand.append(handInner);
-        const root = g({ class: `rig-arm rig-arm${k}` }, l.g, sleeve, prop, hand);
-        return { ...l, sO, sF, sleeve, cover, coverE, root, prop, propInner, hand, handInner, shape: null };
+        // the forearm widening into the hand's wrist over its last stretch (the outline, then the skin)
+        const tO = el('path', { fill: T('outline') }), tF = el('path', { fill: c.skin });
+        const taper = g({ class: 'rig-wrist' }, tO, tF);
+        const root = g({ class: `rig-arm rig-arm${k}` }, l.g, taper, sleeve, prop, hand);
+        return { ...l, sO, sF, sleeve, cover, coverE, tO, tF, root, prop, propInner, hand, handInner, shape: null };
       };
       n.arm1 = arm(1); n.arm2 = arm(2);
       n.armMid.append(n.arm1.root, n.arm2.root);
@@ -626,6 +648,9 @@
       if (name === this.faceName && !force) return this;
       for (const [k, f] of Object.entries(faces)) f.g.style.display = k === name ? '' : 'none';
       this.faceName = name;
+      // place the new face for the current view and gaze right away (with reduced motion no idle frame would, and the
+      // face stayed centered, looking at the camera, until the next tween)
+      if (this.cur && !this.dead) this.apply(this.cur, performance.now());
       return this;
     }
     // The expression for a moment (public/js/figures/expressions.js): a moment id (RPS-3, SHO-9, ...) or an old name.
@@ -706,10 +731,11 @@
       const n = this.n, h = hairShapes(this.look.hair, q, back, this.c.hair);
       n.hairBack.innerHTML = ''; n.hairFront.innerHTML = '';
       n.hairBack.append(...h.behind); n.hairFront.append(...h.front);
-      // ears: the near one always, the far one until a near profile; none from behind
+      // ears: the near one always, the far one until a near profile; from behind both, peeking out at the sides
       n.ears.innerHTML = '';
-      if (!back) {
-        const ear = (x) => el('ellipse', { cx: f1(x), cy: 6, rx: 10, ry: 14, fill: this.c.skin, ...ink });
+      const ear = (x) => el('ellipse', { cx: f1(x), cy: 6, rx: 10, ry: 14, fill: this.c.skin, ...ink });
+      if (back) n.ears.append(ear(-S.R + 1), ear(S.R - 1));
+      else {
         if (q < 0.7) n.ears.append(ear(S.R * (1 - q * 0.9) - 2));
         n.ears.append(ear(-S.R + 2 + q * S.R * 0.7));
       }
@@ -794,18 +820,33 @@
       // body space of a character-space point (the inverse of B)
       const toBody = ([x, y]) => { const dx = x - p.bx, dy = y - (S.hip + p.by); return [dx * ca + dy * sa, (-dx * sa + dy * ca) / p.bsy]; };
       for (let [arm, end0, anc, shape, rOver, hs, po, k] of [[n.arm1, p.a1, an[0], p.h1, p.r1, p.hs1, p.p1, 1], [n.arm2, p.a2, an[1], p.h2, p.r2, p.hs2, p.p2, 2]]) {
-        const s = B(anc), far = farView && k === 2;
+        const over = !behind && p[`over${k}`] >= 0.5;
+        // a far arm drawn in front starts on the leading shoulder corner (the near arm's corner, mirrored)
+        if (over && farView && k === 2) { const yS = S.shoulder - S.hip + 15; anc = [edgeAt(turn, yS) - ARMS.IN - 5, yS]; }
+        const s = B(anc), far = farView && k === 2 && !over;
         end0 = capReach(s, end0, p[`exact${k}`] >= 0.5);
         const handIn = !behind && !far && !back && inTorso(turn, toBody(end0));
-        const front = !behind && !far && (farView ? k === 1 : handIn);
+        const front = over || (!behind && !far && (farView ? k === 1 : handIn));
         const tucked = !front;
         const host = front ? n.armFront : behind || far ? n.armBack : n.armMid;
         const end = far ? [end0[0], end0[1], clamp(end0[2], -ARMS.far.bend, ARMS.far.bend)] : end0;
         const big = this.bigOf(k, shape);
-        const join = rOver != null && (big > 1 || shape === 'glove');
+        // a hand with its own angle: the forearm arrives along it, so the wrist never bends sideways
+        const join = rOver != null;
         const nd = join ? noodleTo(s, end, end[2], rOver) : noodle(s, end, end[2]);
         const hr = rOver == null ? nd.ang : rOver;
         arm.o.setAttribute('d', nd.d); arm.f.setAttribute('d', nd.d);
+        // the forearm widens into the hand's wrist over its last stretch (the drawn hands' wrists are a little wider
+        // than the arm, much wider when a hand is drawn big)
+        {
+          const sc0 = hs * big, [wi] = wristOf(shape), hwW = wi * sc0, hwA = SKIN.armW / 2;
+          if (hwW > hwA + 0.5) {
+            const rc = [nd.c[3], nd.c[2], nd.c[1], nd.c[0]], RA = arcOfCubic(rc);
+            const L = Math.min(RA.len * 0.4, 5 + 9 * (sc0 - 1) + 4 * (hwW - hwA));
+            const tb = band(rc, RA.at(L), (u) => lerp(hwW, hwA, u * u * (3 - 2 * u)));
+            arm.tO.setAttribute('d', tb.outer); arm.tF.setAttribute('d', tb.inner);
+          } else { arm.tO.setAttribute('d', ''); arm.tF.setAttribute('d', ''); }
+        }
         // the sleeve: a front arm's short sleeve from the shoulder (its root under the cover); a tucked arm's band
         // from its hidden root to a little past where it leaves the body
         const A = arcOfCubic(nd.c), w = SKIN.armW / 2;
@@ -928,7 +969,10 @@
   function handSvg(gesture) {
     const look = lookFor('you');
     const node = (HANDS[gesture] || HANDS.ball)({ skin: T(look.skin) }, 3);
-    const box = gesture === 'rock' ? '-34 -54 68 68' : '-42 -90 84 96';
+    // a square box around the drawing (fingers up), with room for the outline
+    const s = HS()[SHAPE_OF[gesture] || 'ready'];
+    const [bx, by, bw, bh] = s ? s.box : [-34, -54, 68, 68], side = Math.max(bw, bh) + 8;
+    const box = `${f1(bx + bw / 2 - side / 2)} ${f1(by + bh / 2 - side / 2)} ${f1(side)} ${f1(side)}`;
     return K.el('svg', { viewBox: box, class: 'ico figure-hand' }, node).outerHTML;
   }
   const handIcon = (gesture) => `<span class="figure-hand-wrap" data-figure-hand="${gesture}">${handSvg(gesture)}</span>`;
