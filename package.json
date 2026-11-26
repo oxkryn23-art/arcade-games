@@ -13,7 +13,8 @@
     "tutorial-text": "node tools/tutorial-text.js",
     "timing": "node tools/reveal-timing.js",
     "screens": "node tools/screens.js",
-    "covers": "node tools/covers.js"
+    "covers": "node tools/covers.js",
+    "build:pages": "node tools/build-pages.js"
   },
   "engines": {
     "node": ">=20"

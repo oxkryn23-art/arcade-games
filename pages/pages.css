@@ -1,0 +1,2 @@
+/* The static build (GitHub Pages): online play and challenge links need the Node server, so they are hidden. */
+#btnPlay, #btnFind, [data-challenge] { display: none !important; }

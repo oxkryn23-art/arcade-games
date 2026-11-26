@@ -5,6 +5,9 @@ locks both in, then the reveal plays out as a small animated scene. No luck, no 
 opponent. Free to play against a computer opponent, against a random player from the queue, or against a friend
 through a challenge link. Works on desktop and on phones held sideways.
 
+**[Play the demo vs the AI on GitHub Pages](https://oxkryn23-art.github.io/arcade-games/)** (a static build: the game
+server runs in your browser, so online matches and challenge links are off there; see [Static demo](#static-demo-github-pages)).
+
 ![Gameplay](docs/screenshots/gameplay.gif)
 
 | | |
@@ -105,6 +108,17 @@ Optional settings are in `.env.example` (copy it to `.env`). With `DEV_MODE=true
 
 To try PvP locally, open two browser windows (one of them private), pick the same game and press **Find an
 opponent** in both.
+
+## Static demo (GitHub Pages)
+
+`npm run build:pages` writes `_site/`, a version of the site that needs no server: the game server's own modules
+(`server/arena.js`, the games, the AI, the timers) are bundled into `js/local-server.js` and run in the page, and
+`pages/local-io.js` connects the site to them with the same `on` / `emit` / ack calls socket.io offers (every
+message copied through JSON and delivered asynchronously, as over a real connection). With one player per page it
+offers the matches vs the AI and the tutorials; online matchmaking and challenge links are hidden. The generated
+files (the page, config, engines, theme) come from the real server, started on a free port during the build, with
+their paths made relative so the site works under the repository's sub-path. `.github/workflows/pages.yml` builds
+and publishes it on every push to `main`.
 
 ## Tests
 

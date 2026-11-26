@@ -11,7 +11,7 @@ const read = (p) => fs.readFileSync(path.join(repo, p), 'utf8');
 function walk(dir, out = []) {
   for (const e of fs.readdirSync(path.join(repo, dir), { withFileTypes: true })) {
     const p = path.join(dir, e.name);
-    if (['node_modules', '.git'].includes(e.name)) continue;
+    if (['node_modules', '.git', '_site'].includes(e.name)) continue;
     if (e.isDirectory()) walk(p, out); else out.push(p.replace(/\\/g, '/'));
   }
   return out;
