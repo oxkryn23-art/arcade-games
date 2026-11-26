@@ -75,9 +75,9 @@
     const ink = tok('ui-ink'), ink2 = tok('ui-ink-2');
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = ink; ctx.font = font(700, 40);
-    ctx.fillText('Second', 64, 92);
-    const sw = ctx.measureText('Second ').width;
-    ctx.fillStyle = tok('ui-play'); ctx.fillText('Guess', 64 + sw, 92);
+    ctx.fillText('Arcade', 64, 92);
+    const sw = ctx.measureText('Arcade ').width;
+    ctx.fillStyle = tok('ui-play'); ctx.fillText('Games', 64 + sw, 92);
     const head = outcome === 'draw' ? 'Draw' : outcome === 'win' ? 'won' : 'lost';
     if (outcome === 'draw') {
       ctx.fillStyle = ink; fitText(ctx, name, 520, 600, 52); ctx.fillText(name, 64, 236);

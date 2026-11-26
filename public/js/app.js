@@ -11,7 +11,7 @@
   };
   const json = (s, d) => { try { return JSON.parse(s) ?? d; } catch { return d; } };
   const CFG = window.DUEL_CONFIG || { games: [], gameScripts: [] };
-  const NAME = CFG.name || 'Second Guess';
+  const NAME = CFG.name || 'Arcade Games';
   const A = window.DuelAvatar;
 
   const S = { socket: null, view: null, match: null, queueSince: null, lastQueue: null, lastDemo: null, clockOffset: 0, stats: { waiting: null }, tutorial: null };

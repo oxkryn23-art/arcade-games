@@ -290,7 +290,7 @@ Where: The label of the top-right button during a tutorial (Forfeit in a match).
 Exit
 
 ### `app.title`
-Where: The browser tab title during a tutorial, after "Second Guess — ".
+Where: The browser tab title during a tutorial, after "Arcade Games — ".
 
 {game} tutorial
 

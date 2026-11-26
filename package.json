@@ -1,8 +1,8 @@
 {
-  "name": "second-guess",
+  "name": "arcade-games",
   "version": "1.0.0",
   "private": true,
-  "description": "Second Guess: realtime 1v1 simultaneous mind games in the browser (Node.js, Express, socket.io, SVG).",
+  "description": "Arcade Games: realtime 1v1 simultaneous mind games in the browser (Node.js, Express, socket.io, SVG).",
   "license": "MIT",
   "main": "server/index.js",
   "scripts": {

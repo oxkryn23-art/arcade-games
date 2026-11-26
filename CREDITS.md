@@ -1,6 +1,6 @@
 # Credits
 
-Everything visual in Second Guess (the characters, the scenes, the props, the icons for the game controls, the
+Everything visual in Arcade Games (the characters, the scenes, the props, the icons for the game controls, the
 favicon, the result card and the covers) is drawn in code in this repository. The third-party assets below are
 bundled with their licenses.
 

@@ -55,7 +55,7 @@ body::before {
   background: radial-gradient(120% 70% at 50% -10%, var(--ui-sky-2), var(--ui-sky) 70%);
 }
 
-/* ---------- the wordmark: "Second" in ink, "Guess" in the call-to-action color ---------- */
+/* ---------- the wordmark: "Arcade" in ink, "Games" in the call-to-action color ---------- */
 .wordmark {
   display: inline-flex; align-items: baseline; gap: .1em; white-space: nowrap; user-select: none;
   font: 700 26px/1 var(--font-display); letter-spacing: -.01em; color: var(--ui-ink);

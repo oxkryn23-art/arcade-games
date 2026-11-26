@@ -12,7 +12,7 @@ const themes = require('./themes');
 const challenges = require('./challenges');
 const errors = require('./errors');
 
-const NAME = 'Second Guess';
+const NAME = 'Arcade Games';
 const app = express();
 app.set('trust proxy', 'loopback');
 app.disable('x-powered-by');

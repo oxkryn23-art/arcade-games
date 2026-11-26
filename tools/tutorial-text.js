@@ -79,7 +79,7 @@ const SECTIONS = [
     ['app.rules-button', [], 'The button in the rules dialog that starts the tutorial.'],
     ['app.badge', ['game'], 'The small line under the scoreboard during a tutorial.'],
     ['app.exit', [], 'The label of the top-right button during a tutorial (Forfeit in a match).'],
-    ['app.title', ['game'], 'The browser tab title during a tutorial, after "Second Guess — ".'],
+    ['app.title', ['game'], 'The browser tab title during a tutorial, after "Arcade Games — ".'],
     ['app.done', ['game'], 'The toast when you finish a tutorial.'],
     ['app.busy', [], 'The toast when you open another page during a tutorial.'],
   ] },

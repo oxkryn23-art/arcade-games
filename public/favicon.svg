@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Second Guess: two speech-bubble halves meeting, one with a question mark (drawn by hand as plain SVG) -->
+  <!-- Arcade Games: two speech-bubble halves meeting, one with a question mark (drawn by hand as plain SVG) -->
   <rect x="2" y="2" width="60" height="60" rx="16" fill="#0F766E"/>
   <path d="M14 20q0-6 6-6h10v30h-6l-6 6v-6h-4q0 0 0 0z" fill="#FFFFFF"/>
   <path d="M34 14h10q6 0 6 6v18q0 6-6 6h-2v6l-6-6h-2z" fill="#2F5BCF"/>

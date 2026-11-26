@@ -1,4 +1,4 @@
-# Second Guess
+# Arcade Games
 
 Realtime 1v1 **simultaneous mind games** in the browser. Both players pick their move at the same time, the server
 locks both in, then the reveal plays out as a small animated scene. No luck, no reflexes: you win by reading your

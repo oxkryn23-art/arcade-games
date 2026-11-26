@@ -33,10 +33,10 @@
   }
 
   const FORMAT = /^[A-Za-z0-9](?:[A-Za-z0-9 _.-]{1,16})[A-Za-z0-9]$/;
-  const RESERVED = ['you', 'ai', 'admin', 'administrator', 'moderator', 'mod', 'secondguess', 'system', 'support', 'staff', 'official',
+  const RESERVED = ['you', 'ai', 'admin', 'administrator', 'moderator', 'mod', 'arcadegames', 'system', 'support', 'staff', 'official',
     'guest', 'demo', 'bot', 'house', 'null', 'undefined', 'anonymous'];
   // staff look-alikes anywhere in a name (letters and digits only, lower case), and names that start or end with the site name
-  const STAFF = /admin|moderator|houseai|^secondguess|secondguess$/;
+  const STAFF = /admin|moderator|houseai|^arcadegames|arcadegames$/;
   // Word stems that are never allowed anywhere in a name (normalized, see below). Kept short and general on purpose.
   const BANNED = ['fuck', 'fuk', 'fck', 'shit', 'cunt', 'bitch', 'bastard', 'dick', 'cock', 'pussy', 'penis', 'vagina', 'whore',
     'slut', 'wank', 'twat', 'prick', 'bollock', 'asshole', 'arsehole', 'jizz', 'cum', 'porn', 'sex', 'rape', 'nazi', 'hitler',
@@ -63,7 +63,7 @@
     if (!FORMAT.test(n) || /\s{2}/.test(n)) return 'Names are 3–18 characters: English letters, numbers, spaces, _ . or -, starting and ending with a letter or number.';
     if (!/[A-Za-z]/.test(n)) return 'Names need at least one letter.';
     if (RESERVED.includes(n.toLowerCase().replace(/[ _.-]/g, ''))) return 'That name is reserved. Pick another one.';
-    // nobody may pose as the site or its staff: "Second Guess Team", "SecondGuessSupport", "Admin2", "House AI"
+    // nobody may pose as the site or its staff: "Arcade Games Team", "ArcadeGamesSupport", "Admin2", "House AI"
     if (STAFF.test(n.toLowerCase().replace(/[^a-z0-9]/g, ''))) return 'That name is reserved. Pick another one.';
     if (profane(n)) return "That name isn't allowed. Pick another one.";
     return '';
