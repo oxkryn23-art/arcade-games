@@ -61,8 +61,9 @@
     shadow: 1,                          // ground shadow size (shrinks on jumps)
     sit: 0,                             // 1 = seated: the character drops so the torso's bottom rests on the origin
     behind: 0,                          // 1 = both arms behind the body (a back view reaching forward)
+    exact1: 0, exact2: 0,               // 1 = the hand stays exactly at a1 / a2 (no reach limit, see REACH): a hand on a prop
   };
-  const DISCRETE = new Set(['h1', 'h2', 'back', 'front1', 'behind']);
+  const DISCRETE = new Set(['h1', 'h2', 'back', 'front1', 'behind', 'exact1', 'exact2']);
 
   const POSES = {
     idle: {},
@@ -183,14 +184,112 @@
       + `C${f1(wH)} ${f1(bot - 30)} ${f1(wS - 2)} ${f1(sh + 30)} ${f1(wS)} ${sh}`
       + `C${f1(wS)} ${sh - 10} ${f1(cx + wS - 4)} ${top - 1} ${f1(cx + n)} ${top}Z`;
   }
-  // The shoulder anchors in body space: [a1, a2]. Front / back: both at the shoulder corners. Turned (facing right):
-  // a1 is the NEAR arm (toward the viewer), a2 the FAR arm, both sliding toward the middle of the side in profile.
-  function anchors(turn, back) {
-    const wS = lerp(S.shoulderW, S.shoulderWSide, turn), y = S.shoulder - S.hip + 6;
-    if (back) return [[-(wS - 8), y], [wS - 8, y]];
-    return [[lerp(-(wS - 8), -2, turn), y + 2 * turn], [lerp(wS - 8, 10, turn), y - 2 * turn]];
+  // The torso's half-width at the height y (body space), measured on the outline torso() draws (sampled once per
+  // turn bucket); -1 above or below it. inTorso(turn, [x, y]): whether a body-space point lies inside the outline.
+  const EDGES = new Map();
+  function edgeTable(turn) {
+    const key = Math.round(clamp(turn) * 20);
+    if (EDGES.has(key)) return EDGES.get(key);
+    const t = key / 20, wS = lerp(S.shoulderW, S.shoulderWSide, t), wH = lerp(S.hipW, S.hipWSide, t);
+    const top = S.neck - S.hip, sh = S.shoulder - S.hip + 8, bot = S.bottom - S.hip, n = wS * 0.42;
+    const pts = [];
+    const seg = (c) => { for (let i = 0; i <= 24; i++) { const p = bez(c, i / 24); pts.push([Math.abs(p[0]), p[1]]); } };
+    seg([[-n, top], [-wS + 4, top - 1], [-wS, sh - 10], [-wS, sh]]);
+    seg([[-wS, sh], [-wS + 2, sh + 30], [-wH, bot - 30], [-wH, bot - 12]]);
+    for (let i = 1; i <= 8; i++) { const u = i / 8; pts.push([wH - 14 * u * u, bot - 12 * (1 - u) * (1 - u)]); }
+    const tab = { top, bot, pts };
+    EDGES.set(key, tab);
+    return tab;
   }
-  const isFar = (turn, back) => !back && turn >= 0.1;
+  function edgeAt(turn, y) {
+    const { top, bot, pts } = edgeTable(turn);
+    if (y < top || y > bot) return -1;
+    let best = -1;
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+      if ((y >= y0 && y <= y1) || (y <= y0 && y >= y1)) best = Math.max(best, y1 === y0 ? Math.max(x0, x1) : lerp(x0, x1, (y - y0) / (y1 - y0)));
+    }
+    return best;
+  }
+  const inTorso = (turn, [x, y]) => Math.abs(x) < edgeAt(turn, y);
+
+  // The arms (after the Verso rig's final arms). A TURNED view (turn >= ARMS.farTurn, not from the back): a1 is the
+  // NEAR arm, starting on the top corner of the torso just below the head, drawn in front of the body with its root
+  // under a short sleeve; a2 is the FAR arm, its root hidden inside the torso, drawn behind the body with a small
+  // sleeve band where it leaves it. A FRONT or BACK view: both arms are TUCKED behind the torso, their roots just
+  // inside the body edge a little below the shoulder line, so the body outline runs over them, each with a sleeve band
+  // reaching band units past where the arm leaves the body; an arm whose hand is in front of the body is drawn in
+  // front instead (from the same anchor, under a short sleeve). The anchors slide between the views, so no root jumps.
+  const ARMS = {
+    farTurn: 0.1, IN: 12,
+    far: { e: 0.12, inset: 18, bend: 0.14, band: 8, bandW: 1 },
+    front: { e: 0.06, inset: 4, band: 13, bandW: 3 },
+    sleeve: 0.24, sleeveMax: 24,
+  };
+  // a body-space point at e of the way from the shoulder line down to the belly, inset units inside the body edge
+  function armAt(turn, e, inset) {
+    const y = S.shoulder - S.hip + e * (S.belly - S.shoulder);
+    return [edgeAt(turn, y) - inset, y];
+  }
+  // The shoulder anchors in body space: [a1, a2] (see ARMS).
+  function anchors(turn, back) {
+    const tk = armAt(turn, ARMS.front.e, ARMS.front.inset);
+    if (back) return [[-tk[0], tk[1]], [tk[0], tk[1]]];
+    const yS = S.shoulder - S.hip + 7, edge = edgeAt(turn, yS);
+    const t1 = clamp(turn / 0.55), t2 = clamp((turn - 0.55) / 0.45);
+    const corner = [-(edge - ARMS.IN - 3 * t1), yS - 2 * t1];
+    const near = turn <= 0.55 ? corner : [lerp(corner[0], -4, t2), lerp(corner[1], yS - 3, t2)];
+    const fa = armAt(turn, ARMS.far.e, ARMS.far.inset);
+    if (turn < ARMS.farTurn) {
+      const f = turn / ARMS.farTurn;
+      return [[lerp(-tk[0], near[0], f), lerp(tk[1], near[1], f)], [lerp(tk[0], fa[0], f), lerp(tk[1], fa[1], f)]];
+    }
+    return [near, fa];
+  }
+  const isFar = (turn, back) => !back && turn >= ARMS.farTurn;
+  // The arms' reach: a hand farther than soft from its shoulder is pulled back along the arm (only k of the extra
+  // length is kept), so a stretched arm stays about as long as the body allows. A pose's exact1 / exact2 keeps a hand
+  // where it is (a hand on a prop). handOf(pose, k) gives scenes the drawn hand point.
+  const REACH = { soft: 122, k: 0.35 };
+  function capReach(s, e, exact) {
+    if (exact) return e;
+    const dx = e[0] - s[0], dy = e[1] - s[1], L = Math.hypot(dx, dy);
+    if (L <= REACH.soft) return e;
+    const f = (REACH.soft + (L - REACH.soft) * REACH.k) / L;
+    return [s[0] + dx * f, s[1] + dy * f, ...e.slice(2)];
+  }
+
+  // A band along the cubic c from t = 0 to t1: half-width hw(u) (u = 0..1 along it), the outline OUT wider, the end
+  // rounded off. Returns { inner, outer } closed paths. Its start is never seen (inside the body or under a cover).
+  function band(c, t1, hw) {
+    const N = 14, L = [], R = [], Lo = [], Ro = [];
+    let last = null;
+    for (let i = 0; i <= N; i++) {
+      const u = i / N, t = t1 * u, p = bez(c, t), q = bez(c, Math.min(1, t + 0.01)), q0 = bez(c, Math.max(0, t - 0.01));
+      let dx = q[0] - q0[0], dy = q[1] - q0[1];
+      const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+      const w = hw(u), nx = -dy, ny = dx;
+      L.push([p[0] + nx * w, p[1] + ny * w]); R.push([p[0] - nx * w, p[1] - ny * w]);
+      Lo.push([p[0] + nx * (w + OUT), p[1] + ny * (w + OUT)]); Ro.push([p[0] - nx * (w + OUT), p[1] - ny * (w + OUT)]);
+      last = [p, dx, dy];
+    }
+    const [p, dx, dy] = last;
+    const pts = (A) => A.map((q) => `${f1(q[0])} ${f1(q[1])}`).join('L');
+    // a soft rounded end: the two sides meet over a short bulge past the end point
+    const end = (A, B, k) => { const a = A[A.length - 1], b = B[B.length - 1]; return `Q${f1(a[0] + dx * k)} ${f1(a[1] + dy * k)} ${f1(p[0] + dx * k)} ${f1(p[1] + dy * k)}Q${f1(b[0] + dx * k)} ${f1(b[1] + dy * k)} ${f1(b[0])} ${f1(b[1])}`; };
+    const poly = (A, B, k) => `M${pts(A)}${end(A, B, k)}L${pts(B.slice().reverse())}Z`;
+    const w = hw(1);
+    return { inner: poly(L, R, w * 0.35), outer: poly(Lo, Ro, w * 0.35 + OUT * 0.9) };
+  }
+  // the parameter t at the arc length d along the cubic c, and the whole length
+  function arcOfCubic(c) {
+    const N = 48, acc = [0];
+    let prev = c[0];
+    for (let i = 1; i <= N; i++) { const p = bez(c, i / N); acc.push(acc[i - 1] + Math.hypot(p[0] - prev[0], p[1] - prev[1])); prev = p; }
+    const len = acc[N];
+    const at = (d) => { if (d >= len) return 1; let i = 1; while (acc[i] < d) i++; return (i - 1 + (d - acc[i - 1]) / ((acc[i] - acc[i - 1]) || 1)) / N; };
+    return { len, at };
+  }
 
   // The character-space point of arm k's shoulder for a pose (no idle life; seated poses in their seat-relative limb
   // coordinates). Scenes aim an arm from it (a gun arm).
@@ -199,6 +298,11 @@
     const an = anchors(turn, back)[k - 1];
     const a = p.brot * D2R, yy = an[1] * p.bsy;
     return [p.bx + an[0] * Math.cos(a) - yy * Math.sin(a), S.hip + p.by + an[0] * Math.sin(a) + yy * Math.cos(a) - S.bottom * (p.sit || 0)];
+  }
+  // The point where arm k's hand is drawn for a pose (a1 / a2 after the reach limit, REACH; same coordinates).
+  function handOf(pose, k) {
+    const p = resolve(pose);
+    return capReach(shoulderOf(null, p, k), p[`a${k}`], p[`exact${k}`] >= 0.5).slice(0, 2);
   }
 
   // ---------------- hands (fingers toward -y, the wrist at the origin) ----------------
@@ -415,8 +519,14 @@
       n.shadow = el('ellipse', { cx: 0, cy: 0, rx: 66, ry: 11, fill: T('shadow'), opacity: 0.22 });
       n.all = g({ class: 'rig-all' });
       n.armBack = g({}); n.armFront = g({});
+      // the tucked arms (front / back views): over the legs and the head (a raised hand never hides behind the head),
+      // masked out of the body (grown by half its outline), so they come out from behind the body's outline
+      n.armMaskBody = el('path', { fill: 'black', stroke: 'black', 'stroke-width': OUT, 'stroke-linejoin': 'round' });
+      n.armMask = el('mask', { id: `${id}-arms`, maskUnits: 'userSpaceOnUse', x: -4000, y: -4000, width: 8000, height: 8000 },
+        el('rect', { x: -4000, y: -4000, width: 8000, height: 8000, fill: 'white' }), n.armMaskBody);
+      n.armMid = g({ class: 'rig-arms-tucked', mask: `url(#${id}-arms)` });
       n.legs = g({}); n.body = g({}); n.head = g({});
-      n.all.append(n.armBack, n.legs, n.body, n.head, n.armFront);
+      n.all.append(el('defs', {}, n.armMask), n.armBack, n.legs, n.body, n.head, n.armMid, n.armFront);
       n.flip.append(n.shadow, n.all);
       this.root.append(n.flip);
 
@@ -461,16 +571,20 @@
       // arms: outline + fill noodle, the short sleeve (shirt color) over the arm's root, the held prop, the hand
       const arm = (k) => {
         const l = limb(SKIN.armW, c.skin);
-        const sO = el('path', { fill: 'none', stroke: T('outline'), 'stroke-width': SKIN.armW + 10 + OUT * 2, 'stroke-linecap': 'round' });
-        const sF = el('path', { fill: 'none', stroke: c.shirt, 'stroke-width': SKIN.armW + 10, 'stroke-linecap': 'round' });
-        const sleeve = g({ class: 'rig-sleeve' }, sO, sF);
+        // the sleeve: a band in the shirt color along the arm's root; on a front arm a cover in the same color over
+        // its root inside the shoulder (clipped to the body), so no outline ring shows where the sleeve starts
+        const sO = el('path', { fill: T('outline') });
+        const sF = el('path', { fill: c.shirt });
+        const coverE = el('ellipse', { fill: c.shirt });
+        const cover = g({ class: 'rig-sleeve-cover', 'clip-path': `url(#${id}-body)` }, coverE);
+        const sleeve = g({ class: 'rig-sleeve' }, sO, sF, cover);
         const prop = g({}); const propInner = g({}); prop.append(propInner);
         const hand = g({}); const handInner = g({}); hand.append(handInner);
         const root = g({ class: `rig-arm rig-arm${k}` }, l.g, sleeve, prop, hand);
-        return { ...l, sO, sF, sleeve, root, prop, propInner, hand, handInner, shape: null };
+        return { ...l, sO, sF, sleeve, cover, coverE, root, prop, propInner, hand, handInner, shape: null };
       };
       n.arm1 = arm(1); n.arm2 = arm(2);
-      n.armBack.append(n.arm1.root); n.armFront.append(n.arm2.root);
+      n.armMid.append(n.arm1.root, n.arm2.root);
       n.flip.setAttribute('transform', this.flip ? 'scale(-1 1)' : '');
     }
 
@@ -670,19 +784,48 @@
         far.style.opacity = String(clamp((0.85 - Math.abs(ht)) / 0.15)); near.style.opacity = '';
       }
 
-      // arms: a turned view draws the far arm (a2) behind the body, the near one in front
+      // arms (ARMS): a turned view draws the near arm (a1) in front under a short sleeve and the far arm (a2) behind
+      // the body; a front / back view tucks both behind the torso (an arm whose hand is in front of the body is drawn
+      // in front instead); behind: 1 puts both behind the body
       const behind = p.behind >= 0.5;
       const an = anchors(turn, back), farView = isFar(turn, back);
-      for (const [arm, end, anc, shape, rOver, hs, po, k] of [[n.arm1, p.a1, an[0], p.h1, p.r1, p.hs1, p.p1, 1], [n.arm2, p.a2, an[1], p.h2, p.r2, p.hs2, p.p2, 2]]) {
+      const bodyT = n.body.getAttribute('transform');
+      n.armMaskBody.setAttribute('d', d); n.armMaskBody.setAttribute('transform', bodyT);
+      // body space of a character-space point (the inverse of B)
+      const toBody = ([x, y]) => { const dx = x - p.bx, dy = y - (S.hip + p.by); return [dx * ca + dy * sa, (-dx * sa + dy * ca) / p.bsy]; };
+      for (let [arm, end0, anc, shape, rOver, hs, po, k] of [[n.arm1, p.a1, an[0], p.h1, p.r1, p.hs1, p.p1, 1], [n.arm2, p.a2, an[1], p.h2, p.r2, p.hs2, p.p2, 2]]) {
         const s = B(anc), far = farView && k === 2;
-        const host = behind || far ? n.armBack : n.armFront;
+        end0 = capReach(s, end0, p[`exact${k}`] >= 0.5);
+        const handIn = !behind && !far && !back && inTorso(turn, toBody(end0));
+        const front = !behind && !far && (farView ? k === 1 : handIn);
+        const tucked = !front;
+        const host = front ? n.armFront : behind || far ? n.armBack : n.armMid;
+        const end = far ? [end0[0], end0[1], clamp(end0[2], -ARMS.far.bend, ARMS.far.bend)] : end0;
         const big = this.bigOf(k, shape);
         const join = rOver != null && (big > 1 || shape === 'glove');
         const nd = join ? noodleTo(s, end, end[2], rOver) : noodle(s, end, end[2]);
         const hr = rOver == null ? nd.ang : rOver;
         arm.o.setAttribute('d', nd.d); arm.f.setAttribute('d', nd.d);
-        const sl = pathOf(splitAt(nd.c, 0.26));
-        arm.sO.setAttribute('d', sl); arm.sF.setAttribute('d', sl);
+        // the sleeve: a front arm's short sleeve from the shoulder (its root under the cover); a tucked arm's band
+        // from its hidden root to a little past where it leaves the body
+        const A = arcOfCubic(nd.c), w = SKIN.armW / 2;
+        let sb = null;
+        if (front) {
+          const len = Math.min(ARMS.sleeveMax, A.len * ARMS.sleeve);
+          sb = band(nd.c, A.at(len), (u) => w + 4 + 1.5 * u);
+          arm.cover.setAttribute('transform', bodyT);
+          arm.coverE.setAttribute('cx', f1(anc[0])); arm.coverE.setAttribute('cy', f1(anc[1] + 2));
+          arm.coverE.setAttribute('rx', f1(17 - 2 * turn)); arm.coverE.setAttribute('ry', 18);
+          arm.cover.style.display = '';
+        } else {
+          arm.cover.style.display = 'none';
+          const st = far ? ARMS.far : ARMS.front;
+          let exitD = null;
+          for (let dd = 2; dd <= A.len; dd += 2) if (!inTorso(turn, toBody(bez(nd.c, A.at(dd))))) { exitD = dd; break; }
+          if (exitD != null) sb = band(nd.c, A.at(Math.min(A.len - 4, exitD + st.band)), (u) => w + st.bandW + 1.2 * u);
+        }
+        arm.sleeve.style.display = sb ? '' : 'none';
+        if (sb) { arm.sO.setAttribute('d', sb.outer); arm.sF.setAttribute('d', sb.inner); }
         const key = `${shape}:${big}`;
         if (arm.shape !== key) {
           arm.handInner.innerHTML = '';
@@ -693,7 +836,7 @@
         arm.hand.setAttribute('transform', `translate(${f1(end[0])} ${f1(end[1])}) rotate(${f1(hr + 90)}) scale(${sc})`);
         arm.prop.setAttribute('transform', `translate(${f1(end[0])} ${f1(end[1])}) rotate(${f1(hr + po[2])}) translate(${po[0]} ${po[1]})`);
         arm.ang = hr; arm.end = end; arm.hs = hs; arm.big = big; arm.gesture = shape;
-        arm.root.dataset.arm = far ? 'far' : 'near';
+        arm.root.dataset.arm = far ? 'far' : tucked ? 'tucked' : 'near';
         if (arm.root.parentNode !== host) host.append(arm.root);
       }
       const r1 = n.arm1.root, r2 = n.arm2.root;
@@ -759,7 +902,7 @@
     else {
       const cy = S.neck - S.headUp + 10, size = 176;
       svg = K.el('svg', { viewBox: `${-size / 2} ${f1(cy - size / 2)} ${size} ${size}`, class: 'figure-avatar-svg', 'aria-hidden': 'true' });
-      r.n.shadow.remove(); r.n.legs.remove(); r.n.armBack.remove(); r.n.armFront.remove();
+      r.n.shadow.remove(); r.n.legs.remove(); r.n.armBack.remove(); r.n.armMid.remove(); r.n.armFront.remove();
     }
     svg.append(r.root);
     return svg.outerHTML;
@@ -818,7 +961,7 @@
 
   window.DuelFigures = {
     skin: () => SKIN, ids: () => ['human'], create, POSES, REST, resolve, EASE, avatarSvg, stage, paintAvatars, handIcon, handSvg,
-    noodle, noodleTo, HANDS, OUT, FACES, HAIR, blend, arcOf, bowedAt, bez, shoulderOf, torso,
+    noodle, noodleTo, HANDS, OUT, FACES, HAIR, blend, arcOf, bowedAt, bez, shoulderOf, handOf, torso,
     liveRigs: () => [...live].filter((r) => !r.dead),
   };
 })();

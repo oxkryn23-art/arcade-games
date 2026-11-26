@@ -123,11 +123,11 @@
     return { ...pose, a2: [Math.round(hand[0]), Math.round(hand[1]), -0.06], r2: a + AIM_R };
   }
   // Shotgun: 3/4, the gun out beside the chest in the far hand, the near hand reaching across to the pump.
-  const SG_GRIP = [6, -4, 0], SG_AT = [60, -150];
+  const SG_GRIP = [6, -4, 0], SG_AT = [40, -150];
   const pumpHand = (a2, r2) => add(a2, rotV([geo().GUN.pump[0] + SG_GRIP[0], geo().GUN.pump[1] + SG_GRIP[1] + 8], r2));
   function shotgunAt(a, base = {}) {
     const at = SG_AT, pump = pumpHand(at, a);
-    return { turn: 0.55, ht: 0.2, l1: [-30, -10, 0.1], l2: [34, -10, -0.2], a2: [at[0], at[1], -0.1], h2: 'fist', r2: a, p2: SG_GRIP, a1: [Math.round(pump[0]), Math.round(pump[1]), 0.15], h1: 'fist', r1: a - 70, lx: 1, ...base };
+    return { turn: 0.55, ht: 0.2, l1: [-30, -10, 0.1], l2: [34, -10, -0.2], a2: [at[0], at[1], -0.1], h2: 'fist', r2: a, p2: SG_GRIP, a1: [Math.round(pump[0]), Math.round(pump[1]), 0.15], h1: 'fist', r1: a - 70, exact1: 1, lx: 1, ...base };
   }
   // the blast's recoil: kicked up and back
   function blastKick(pose) {
@@ -143,7 +143,7 @@
     const cyl = add(a2, rotV(add(REV.cylOut, GRIP), RELOAD_R2));
     const bulletHand = (dy) => [Math.round(cyl[0] + 4), Math.round(cyl[1] - 34 + dy)];
     const near = (dx, dy) => [Math.round(cyl[0] + dx), Math.round(cyl[1] + dy)];
-    const base = { turn: 0.55, ht: 0.1, ...LEGS, p2: GRIP, a2: [...a2, 0.1], h2: 'fist', r2: RELOAD_R2, h1: 'fist', r1: 90, p1: [0, -26, 90], hrot: 8, hy: 4, by: 4, lx: 0.5, ly: 0.9 };
+    const base = { turn: 0.55, ht: 0.1, ...LEGS, p2: GRIP, a2: [...a2, 0.1], h2: 'fist', r2: RELOAD_R2, h1: 'fist', r1: 90, p1: [0, -26, 90], exact1: 1, hrot: 8, hy: 4, by: 4, lx: 0.5, ly: 0.9 };
     return {
       open: { ...base, a1: [...near(-46, -26), 0.2] },
       bring: { ...base, a1: [...bulletHand(-10), 0.2] },
@@ -679,7 +679,7 @@
       return aimAt(localAng(side, deg(toWorld(side, levelHand(ARM)), pt)), base);
     }
     function shotgunPose(side, pt, base = {}) { return shotgunAt(localAng(side, deg(toWorld(side, SG_AT), pt)), base); }
-    const muzzleAt = (side, pose, m) => toWorld(side, add(pose.a2.slice(0, 2), rotV(add(m, (pose.p2 || [0, 0]).slice(0, 2)), pose.r2)));
+    const muzzleAt = (side, pose, m) => toWorld(side, add(window.DuelFigures.handOf(pose, 2), rotV(add(m, (pose.p2 || [0, 0]).slice(0, 2)), pose.r2)));
 
     async function reload(side, before, until) {
       const r = rigs[side], gun = r.prop(2), RP = reloadPoses();
