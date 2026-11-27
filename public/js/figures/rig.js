@@ -40,14 +40,15 @@
   // (the proportions of the model sheet: the head 126 units from its top to the neck, the torso 92, the legs 86)
   const S = {
     hip: -100, neck: -178, shoulder: -163, belly: -116, bottom: -86,
-    hipX: 18, hipXSide: 6, headSide: 6, headUp: 66, R: 58,
+    hipX: 18, hipXSide: 6, headSide: 6, headUp: 83, R: 58,
   };
   const SKIN = { id: 'human', skel: S, armW: 15, legW: 22 };
   const FA = () => window.DuelFigureArt || null;
   // the traced torso is a little narrower than the model sheet's: widened by TORSO_XK
   const TORSO_H = S.bottom - S.neck, TORSO_XK = 1.15;
-  // the head's neck stub reaches STUB_IN units into the torso (the collar runs over it)
-  const STUB_IN = 9;
+  // the head's neck stub ends STUB_IN units below the torso's top (negative: above it); a drawn NECK (NECK_W wide)
+  // runs from inside the torso up under the chin, so a head sits on a real neck, the collar over its root
+  const STUB_IN = -8, NECK_W = 22;
   // the shoes: drawn SHOE_K x their traced size, the sole SOLE_DY below the leg's end (a pose's feet end 10 above the
   // ground)
   const SHOE_K = 1.08, SOLE_DY = 10;
@@ -278,7 +279,9 @@
 
   // A band along the cubic c from t = 0 to t1: half-width hw(u) (u = 0..1 along it), the outline OUT wider, the end
   // rounded off. Returns { inner, outer } closed paths. Its start is never seen (inside the body or under a cover).
-  function band(c, t1, hw) {
+  // flat: the far end is cut straight across (a band that runs on into the arm, the wrist widening), so no outline
+  // crosses the arm there.
+  function band(c, t1, hw, flat = false) {
     const N = 14, L = [], R = [], Lo = [], Ro = [];
     let last = null;
     for (let i = 0; i <= N; i++) {
@@ -296,6 +299,11 @@
     const end = (A, B, k) => { const a = A[A.length - 1], b = B[B.length - 1]; return `Q${f1(a[0] + dx * k)} ${f1(a[1] + dy * k)} ${f1(p[0] + dx * k)} ${f1(p[1] + dy * k)}Q${f1(b[0] + dx * k)} ${f1(b[1] + dy * k)} ${f1(b[0])} ${f1(b[1])}`; };
     const poly = (A, B, k) => `M${pts(A)}${end(A, B, k)}L${pts(B.slice().reverse())}Z`;
     const w = hw(1);
+    // (the skin runs 3 units past the outline's straight end, so no dark seam shows across the arm)
+    if (flat) {
+      const ext = (A) => { const q = A[A.length - 1]; return [...A, [q[0] + dx * 3, q[1] + dy * 3]]; };
+      return { inner: `M${pts(ext(L))}L${pts(ext(R).reverse())}Z`, outer: `M${pts(Lo)}L${pts(Ro.slice().reverse())}Z` };
+    }
     return { inner: poly(L, R, w * 0.35), outer: poly(Lo, Ro, w * 0.35 + OUT * 0.9) };
   }
   // the parameter t at the arc length d along the cubic c, and the whole length
@@ -464,7 +472,10 @@
       n.head.append(n.headInner);
       n.headArt = g({ class: 'rig-hair' });
       n.faceSlot = g({ class: 'rig-face-slot' });
-      n.headInner.append(n.headArt, n.faceSlot);
+      // the neck (drawn per head in dressHead): over the bottom of the drawing's neck stub (its rounded end would cross
+      // the neck), under the chin, exactly as wide as the stub; only its sides are outlined, its foot inside the torso
+      n.neckArt = g({ class: 'rig-neck' });
+      n.headInner.append(n.headArt, n.neckArt, n.faceSlot);
       this.hairKey = null; this.faceKey = null;
 
       // arms: outline + fill noodle, the short sleeve (shirt color) over the arm's root, the held prop, the hand
@@ -610,6 +621,10 @@
         this.n.headArt.innerHTML = '';
         if (art) this.n.headArt.append(artPiece(art, classFill(this.c)));
         else this.n.headArt.append(el('circle', { cx: 0, cy: -68, r: S.R, fill: this.c.skin, ...ink }));
+        const hw = art?.neck || NECK_W / 2 + OUT / 2, nx = hw - OUT / 2, ny = -5, nb = 14 - STUB_IN;
+        this.n.neckArt.innerHTML = '';
+        this.n.neckArt.append(el('rect', { x: f1(-nx), y: ny, width: f1(nx * 2), height: nb - ny, fill: this.c.skin }),
+          el('path', { d: `M${f1(-nx)} ${ny}V${nb}M${f1(nx)} ${ny}V${nb}`, fill: 'none', ...ink }));
       }
       const fk = `${view}:${this.faceName}`;
       if (fk === this.faceKey) return;
@@ -703,7 +718,7 @@
           if (hwW > hwA + 0.5) {
             const rc = [nd.c[3], nd.c[2], nd.c[1], nd.c[0]], RA = arcOfCubic(rc);
             const L = Math.min(RA.len * 0.4, 5 + 9 * (sc0 - 1) + 4 * (hwW - hwA));
-            const tb = band(rc, RA.at(L), (u) => lerp(hwW, hwA, u * u * (3 - 2 * u)));
+            const tb = band(rc, RA.at(L), (u) => lerp(hwW, hwA, u * u * (3 - 2 * u)), true);
             arm.tO.setAttribute('d', tb.outer); arm.tF.setAttribute('d', tb.inner);
           } else { arm.tO.setAttribute('d', ''); arm.tF.setAttribute('d', ''); }
         }

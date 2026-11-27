@@ -355,6 +355,10 @@ async function main() {
         const cr = crop(cl, img.w, rows[r][v]), st = stubOf(cr);
         const map = ([x, y]) => [(x - st.x) * k, (y - st.y) * k];
         const head = {};
+        // the neck stub's outer half-width a little above its bottom (the rig draws its neck exactly as wide)
+        { const y = Math.round(st.y - 7); let a = -1, b2 = -1;
+          for (let x = Math.max(0, Math.round(st.x - 30)); x < Math.min(cr.w, st.x + 30); x++) if (cr.c[y * cr.w + x] !== ID.green && cr.c[y * cr.w + x] !== ID.hair) { if (a < 0) a = x; b2 = x; }
+          head.neck = r1(((b2 - a + 1) / 2) * k); }
         if (view === 'front' || view === 'three') {
           const feats = features(cr), eyes = eyesOf(feats, cr);
           for (const f of feats) for (const j of f.px) cr.c[j] = ID.skin;   // the neutral face out
@@ -365,6 +369,10 @@ async function main() {
         art.heads[style][view] = head;
       });
     });
+    // one neck width per sheet (the same drawn head): the median, as hair covers the stub in some views
+    const nw = styles.flatMap((st) => VIEWS.map((v) => art.heads[st][v].neck)).sort((x, y) => x - y);
+    const med = nw[Math.floor(nw.length / 2)];
+    for (const st of styles) for (const v of VIEWS) art.heads[st][v].neck = med;
     report.push(`${file}: scale ${k.toFixed(3)} units/px`);
   }
 
