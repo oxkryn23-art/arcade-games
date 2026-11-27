@@ -20,7 +20,7 @@
   const f1 = (n) => Math.round(n * 10) / 10;
   const CODE_IDS = ['tee'];
   // the kit's vector-texture garments (tools/import-kit.js; the tops, the casual and the jackets, then the full-body pieces)
-  const SPRITE_IDS = ['stripedtee', 'polo', 'jersey', 'aloha', 'ringer', 'hoodie', 'denim', 'sweater', 'flannel', 'tracktop', 'bomber', 'leather', 'puffer', 'raincoat', 'blazer', 'overalls', 'mechanic', 'pajamas', 'tracksuit', 'western'];
+  const SPRITE_IDS = ['aloha', 'hoodie', 'denim', 'sweater', 'tracktop', 'leather', 'puffer', 'blazer', 'tracksuit'];
   const IDS = ['none', ...CODE_IDS, ...SPRITE_IDS];
   const ink = { stroke: T('outline'), 'stroke-width': 3, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
 
@@ -116,26 +116,15 @@
   const PANTS = { color: T('pants') };
   const SPEC = {
     tee: { long: false, legs: PANTS },
-    stripedtee: { long: false, cuff: t('stripedtee', 'cuff'), cuffW: 0.35, legs: PANTS },
-    polo: { long: false, cuff: t('polo', 'cuff'), cuffW: 0.3, legs: PANTS },
-    jersey: { long: false, cuff: t('jersey', 'cuff'), cuffW: 0.35, legs: PANTS },
     aloha: { long: false, legs: PANTS },
-    ringer: { long: false, cuff: t('ringer', 'cuff'), cuffW: 0.3, legs: PANTS },
     hoodie: { long: true, cuff: t('hoodie', 'cuff'), cuffW: 0.15, legs: PANTS },
     denim: { long: true, legs: PANTS },
     sweater: { long: true, cuff: t('sweater', 'cuff'), cuffW: 0.12, legs: PANTS },
-    flannel: { long: true, stripe: t('flannel', 'stripe'), legs: PANTS },
     tracktop: { long: true, cuff: t('tracktop', 'cuff'), cuffW: 0.13, legs: PANTS },
-    bomber: { long: true, cuff: t('bomber', 'cuff'), cuffW: 0.15, legs: PANTS },
     leather: { long: true, legs: PANTS },
     puffer: { long: true, cuff: t('puffer', 'cuff'), cuffW: 0.08, stripe: t('puffer', 'stripe'), legs: PANTS },
-    raincoat: { long: true, legs: PANTS },
     blazer: { long: true, cuff: t('blazer', 'cuff'), cuffW: 0.08, legs: PANTS },
-    overalls: { long: false, legs: { color: t('overalls', 'leg'), ankle: t('overalls', 'ankle'), ankleW: 0.13 } },
-    mechanic: { long: true, cuff: t('mechanic', 'cuff'), cuffW: 0.13, legs: { color: t('mechanic', 'leg'), ankle: t('mechanic', 'ankle'), ankleW: 0.11 } },
-    pajamas: { long: true, cuff: t('pajamas', 'cuff'), cuffW: 0.14, legs: { color: t('pajamas', 'leg'), ankle: t('pajamas', 'ankle'), ankleW: 0.13 } },
     tracksuit: { long: true, cuff: t('tracksuit', 'cuff'), cuffW: 0.15, legs: { color: t('tracksuit', 'leg'), ankle: t('tracksuit', 'ankle'), ankleW: 0.1 } },
-    western: { long: true, cuff: t('western', 'cuff'), cuffW: 0.13, legs: { color: t('western', 'leg'), ankle: t('western', 'ankle'), ankleW: 0.12 } },
   };
   window.VersoOutfits = {
     ids: () => [...IDS],

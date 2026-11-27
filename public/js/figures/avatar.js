@@ -12,7 +12,7 @@
     shirt: ['shirt-1', 'shirt-2', 'shirt-3', 'shirt-4', 'shirt-5', 'shirt-6', 'shirt-7', 'shirt-8'],
     // the clothes (the human clothes kit, mascots/cosmetics.js ITEMS: the same ids in the same order)
     hat: ['none'],   // (no hats: the owner dropped them)
-    outfit: ['tee', 'stripedtee', 'polo', 'jersey', 'aloha', 'ringer', 'hoodie', 'denim', 'sweater', 'flannel', 'tracktop', 'bomber', 'leather', 'puffer', 'raincoat', 'blazer', 'overalls', 'mechanic', 'pajamas', 'tracksuit', 'western'],
+    outfit: ['tee', 'aloha', 'hoodie', 'denim', 'sweater', 'tracktop', 'leather', 'puffer', 'blazer', 'tracksuit'],
     feet: ['natural', 'sneakers', 'hightops', 'loafers', 'chelsea', 'runners', 'cleats', 'rainboots', 'slippers', 'skate'],
   };
   const LABELS = {

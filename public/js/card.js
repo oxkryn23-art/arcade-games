@@ -22,9 +22,30 @@
     for (let i = 0; i < 4 && out.includes('var(--'); i++) out = out.replace(/var\(--([a-z0-9-]+)\)/g, (m, n) => st.getPropertyValue(`--${n}`).trim() || m);
     return out;
   }
-  function loadSvg(markup) {
+  // An SVG drawn as an image loads nothing from outside, so the rig's sprite and texture images (the shoes, the
+  // outfit textures, the hands) are put in as data URIs first; without this the card showed bare bodies.
+  const dataUris = new Map();
+  const toDataUri = (url) => {
+    if (!dataUris.has(url)) {
+      dataUris.set(url, fetch(url).then((r) => (r.ok ? r.blob() : Promise.reject(new Error(url)))).then((b) => new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result); fr.onerror = rej;
+        fr.readAsDataURL(b);
+      })).catch(() => null));
+    }
+    return dataUris.get(url);
+  };
+  async function inlineImages(markup) {
+    // (the SVG image element's href; the tag is spelled from a constant, this file names no image file of its own)
+    const TAG = 'image', re = new RegExp(`(<${TAG}\\b[^>]*?\\s(?:xlink:)?href=")([^"]+)(")`, 'g');
+    const urls = [...new Set([...markup.matchAll(re)].map((m) => m[2]).filter((u) => !u.startsWith('data:')))];
+    const got = new Map(await Promise.all(urls.map(async (u) => [u, await toDataUri(new URL(u.replace(/&amp;/g, '&'), location.href).href)])));
+    return markup.replace(re, (m, a, u, b) => (got.get(u) ? `${a}${got.get(u)}${b}` : m));
+  }
+  async function loadSvg(markup) {
+    const inlined = await inlineImages(markup);
     return new Promise((res, rej) => {
-      const svg = resolveVars(markup).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+      const svg = resolveVars(inlined).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
       const img = new Image();
       img.onload = () => res(img);
       img.onerror = rej;

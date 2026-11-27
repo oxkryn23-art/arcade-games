@@ -284,6 +284,7 @@
     skel: SKEL,
     armW: 15, legW: 15, foot: [27, 13],
     handIconBox: '-27 -52 54 54',   // the control icons: the box fitted to the hands (the wrist at 0, the fingers up)
+    wristHands: true,   // the hands have a wrist: the arm always runs into the hand's angle (rig.js join)
     handSkin: [0xD4, 0x9A, 0x6E],   // the hand sheet's skin (the RPS hand sprites, recolored to the player's skin by the rig)
     tail: null,
     avatarBox: 104,

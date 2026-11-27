@@ -45,7 +45,7 @@ const SHEETS = [
 ];
 const ID_OF = { outfit: {}, feet: {}, hat: {} };
 const CODE_SHOES = new Set();
-const REMOVED = new Set(['cowboyboots']);   // (in the sheet, dropped by the owner)
+const REMOVED = new Set(['cowboyboots', 'stripedtee', 'polo', 'jersey', 'ringer', 'flannel', 'bomber', 'raincoat', 'overalls', 'mechanic', 'pajamas', 'western']);   // (in the sheet, dropped by the owner)
 // shorter shafts for the tall shoes (keep = the share of each view's height that stays; see shorten())
 const SHAFT = { hightops: { keep: 0.85 }, chelsea: { keep: 0.85 }, rainboots: { keep: 0.78 } };
 const SHAFT_BAND = [[0.04, 0.62], [0.04, 0.6]];   // [front/back, three/side]

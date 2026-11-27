@@ -993,21 +993,27 @@
         for (const q of [n.neckClipBody, n.neckClipTop]) q.setAttribute('transform', bodyT);
         n.neckClipBody.setAttribute('d', body);
         n.neckClipTop.setAttribute('d', `M-4000 -4000H4000V${S.neck - S.hip}H-4000Z`);
-        // the gap = the neck column itself (head space -> body space), so it turns and tilts with the neck and the
-        // body never shows a hole beside a tilted neck. With a garment on, it ends under the collar band (n.neckBand,
-        // over the garment, in its trim color: the neck goes into the shirt there) and the garment's neck opening
-        // below it shows the body in the garment's color (dressOutfit); bare, it reaches 10 units under the body's top.
-        const hr = (p.brot + p.hrot) * D2R, hc = Math.cos(hr), hs = Math.sin(hr), hw = sk.neckW / 2;
-        const toBody = ([u, v]) => {
-          const dx = neck[0] + p.hx + u * hc - v * hs - p.bx, dy = neck[1] + p.hy + u * hs + v * hc - (S.hip + p.by);
-          return [dx * ca + dy * sa, (-dx * sa + dy * ca) / p.bsy];
-        };
-        const P = (uv) => toBody(uv).map(f1).join(' ');
-        const dressed = !!outfit, gb = dressed ? 4 : 10;
-        const q = [[-hw, -60], [hw, -60], [hw, gb], [-hw, gb]].map(toBody);
-        n.neckGap.setAttribute('d', `M-4000 -4000H4000V4000H-4000ZM${q.map(([x, y]) => `${f1(x)} ${f1(y)}`).join('L')}Z`);
+        // With a garment on, the collar band (n.neckBand, over the garment, in its trim color) sits FIXED on the body at
+        // its neck point and covers where the neck goes into the shirt, so a head that nods, drops or tilts (the sad and
+        // the win poses) never drags the collar along or opens a gap; the body below shows the garment's color
+        // (dressOutfit). Bare, the body's top outline is left out across the neck column itself (head space -> body
+        // space), so it turns and tilts with the neck and reaches 10 units under the body's top.
+        const hw = sk.neckW / 2, dressed = !!outfit;
+        if (dressed) {
+          const bx = lerp(0, S.headSide, turn), by = S.neck - S.hip, w = hw + 6;
+          const B2 = (x, y) => `${f1(bx + x)} ${f1(by + y)}`;
+          n.neckGap.setAttribute('d', 'M-4000 -4000H4000V4000H-4000Z');
+          n.neckBand.setAttribute('d', `M${B2(-w, -4)}Q${B2(0, 1)} ${B2(w, -4)}L${B2(w, 5)}Q${B2(0, 12)} ${B2(-w, 5)}Z`);
+        } else {
+          const hr = (p.brot + p.hrot) * D2R, hc = Math.cos(hr), hs = Math.sin(hr);
+          const toBody = ([u, v]) => {
+            const dx = neck[0] + p.hx + u * hc - v * hs - p.bx, dy = neck[1] + p.hy + u * hs + v * hc - (S.hip + p.by);
+            return [dx * ca + dy * sa, (-dx * sa + dy * ca) / p.bsy];
+          };
+          const q = [[-hw, -60], [hw, -60], [hw, 10], [-hw, 10]].map(toBody);
+          n.neckGap.setAttribute('d', `M-4000 -4000H4000V4000H-4000ZM${q.map(([x, y]) => `${f1(x)} ${f1(y)}`).join('L')}Z`);
+        }
         n.neckBand.style.display = dressed ? '' : 'none';
-        if (dressed) n.neckBand.setAttribute('d', `M${P([-hw - 5, -3])}Q${P([0, 2])} ${P([hw + 5, -3])}L${P([hw + 5, 5])}Q${P([0, 12])} ${P([-hw - 5, 5])}Z`);
       }
       this.skin.turnHead(n.hp, clamp(turn + p.ht, -1, 1), back, { el });
       const f = n.faces[this.faceName];
@@ -1090,8 +1096,9 @@
         const spr = info && info.wo ? info : null;
         // until sprites.json arrives the hand waits hidden; a sprite without wrist data falls back to the rig's own hand
         const waiting = !!sprName && !spr && !this.sprLoaded;
-        // the arm joins the hand: its end tangent is the hand angle (sprite hands, gloves)
-        const join = rOver != null && (spr || waiting || JOINED.has(shape));
+        // the arm joins the hand: its end tangent is the hand angle (sprite hands, gloves, and every hand of a species
+        // whose hands have a wrist (skin.wristHands: the human), so a held gun never kinks the wrist the wrong way)
+        const join = rOver != null && (spr || waiting || JOINED.has(shape) || !!sk.wristHands);
         const nd = join ? noodleTo(s, end, end[2], rOver) : noodle(s, end, end[2]);
         const hr = rOver == null ? nd.ang : rOver;
         arm.c = nd.c;

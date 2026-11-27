@@ -54,9 +54,9 @@ Every game has an interactive tutorial that runs the real scene and the real rul
   filter, the other hands and the shoes are traced into SVG paths (`tools/trace-figures.js`); a long sleeve rolls up on
   the arm that plays, as in the original game. The clothes and hairstyles come from a ChatGPT kit in the original game's format
   (`art-source/human-kit/`, `tools/human-kit.js`, references rendered by `tools/kit-renders.js`), imported the way
-  the original game imported its cosmetics: 20 outfits traced into vector textures for the body (`tools/import-kit.js`,
-  `tools/outfit-vector.js`), 10 pairs of shoes as sprites with their anchors and collars
-  (`tools/shoe-collars.js`), and 8 hairstyles traced into vectors the game recolors per player (`tools/import-hair.js`). The scenes, props,
+  the original game imported its cosmetics: 9 outfits (plus the T-shirt drawn in code) traced into vector textures for the body (`tools/import-kit.js`,
+  `tools/outfit-vector.js`), 9 pairs of shoes as sprites with their anchors and collars
+  (`tools/shoe-collars.js`), and 6 hairstyles traced into vectors the game recolors per player (`tools/import-hair.js`). The scenes, props,
   effects, covers and the result card are SVG / canvas built in JavaScript; the Penalty stadium and its fans are
   pictures (`public/art/`, `tools/import-stadium.js`).
 - **Avatar picker**: skin tone, hairstyle, hair color, shirt color, an outfit and shoes, plus a nickname (the
