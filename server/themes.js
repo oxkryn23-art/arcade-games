@@ -19,7 +19,7 @@ const TOKENS = {
   'skin-1': '#F6D7BE', 'skin-2': '#EBBE98', 'skin-3': '#D49A6E', 'skin-4': '#A86F48', 'skin-5': '#6E4630',
   'hair-1': '#2B2420', 'hair-2': '#5A3A26', 'hair-3': '#9A6237', 'hair-4': '#D9A85B', 'hair-5': '#B04A2E', 'hair-6': '#8E96A3',
   'shirt-1': '#3F7CC4', 'shirt-2': '#D9573B', 'shirt-3': '#3C9A6A', 'shirt-4': '#E3A93A', 'shirt-5': '#7C5CC4', 'shirt-6': '#2E8C99', 'shirt-7': '#D6698F', 'shirt-8': '#55606E',
-  pants: '#3B4656', shoe: '#2E3440', 'shoe-sole': '#E9ECF0',
+  pants: '#3B4656', shoe: '#2E3440', 'shoe-sole': '#E9ECF0', 'shoe-lining': '#1A1F27',
   eye: '#FFFFFF', mouth: '#7A3434', tongue: '#E2787A', cheek: '#E88A7A',
   glove: '#F2C14E', 'glove-band': '#2E8C99',
   // props (public/js/figures/props.js): wood, gunmetal, the football, muzzle flashes

@@ -33,7 +33,8 @@ for (const f of code) {
   const real = hex.filter((h) => !/^#(ccc|fff|000)$/i.test(h) || !/\.(js)$/.test(f));
   assert.deepStrictEqual(real.filter((h) => !src.includes(`id="${h.slice(1)}"`)), [], `${f}: hard-coded colors ${real.join(' ')}`);
   assert(!/rgba?\(\s*\d/.test(src.replace(/rgba\(0,\s*0,\s*0,\s*0\)/g, '')), `${f}: rgb() literal`);
-  assert(!/\/assets\/|<image\b|url\(['"]?[^)'"]+\.(png|jpe?g|webp|gif)/.test(src), `${f}: refers to an image file`);
+  // (the character rig, public/js/mascots/, points at its sprites in public/art/)
+  if (!/^(\.\/)?public\/js\/mascots\//.test(f)) assert(!/\/assets\/|<image\b|url\(['"]?[^)'"]+\.(png|jpe?g|webp|gif)/.test(src), `${f}: refers to an image file`);
 }
 
 // 3. every icon asked for exists

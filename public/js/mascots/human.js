@@ -1,6 +1,9 @@
-// The human skin of the rig, drawn in code the way the original game drew its mascots (a big round head, ears that
-// follow the head turn, big eyes with whites, a face that slides and narrows toward a profile): the head, the ears,
-// the eight hairstyles and the ten expressions. Load before figures/rig.js, which draws every character with it.
+// The HUMAN species of the mascot rig (public/js/mascots/rig.js, the original game's rig): a skin file like the
+// original monkey.js / cat.js, drawn in code the same way (a big round head, ears that follow the head turn, big eyes
+// with whites, a face that slides and narrows toward a profile), plus a neck and hair: the eight hairstyles in the
+// player's hair color, the ten expressions (figures/expressions.js picks them), the hands (the traced hand sheet,
+// figures/figure-art.js). The player's look (skin tone, hair style and color, shirt) comes with the loadout
+// (mascots/cosmetics.js): colorsFor(loadout). Load after mascots/rig.js.
 //
 // Head frame: the head center at 0,0, y down, R = the head radius. turn: -1..1 (0 front, 0.55 three-quarter, 1 profile
 // facing right; negative = facing left), back = seen from behind.
@@ -154,6 +157,7 @@
       return h.g({}, ...out);
     };
     const SHORT = { tips: [[0.55, -0.3], [0.12, -0.36], [-0.38, -0.4]], notch: -0.6, lines: [[0.05, -0.94, 0.28, -0.64], [-0.32, -0.9, -0.18, -0.66]] };
+    if (style === 'bald') return { behind, front };   // (the kit's reference renders)
     switch (style) {
       case 'crop': front.push(cap({ temple: -0.3, tips: [[0.5, -0.5], [0.17, -0.52], [-0.17, -0.52], [-0.5, -0.5]], notch: -0.6 })); break;
       case 'buzz':
@@ -219,5 +223,71 @@
     return { behind, front };
   }
 
-  window.DuelHuman = { R, head, turnHead, hair, faces, HAIR };
+  // ---------------- the species ----------------
+  const MS = window.VersoMascots;
+  // the original monkey's skeleton (the same body, arms and legs), the head a little higher on a neck
+  const SKEL = {
+    hip: -74, neck: -178, shoulder: -163, belly: -98, bottom: -58,
+    bodyRx: 46, bodyRxSide: 40, bodyTop: 24, bodyTopSide: 22,
+    hipX: 20, hipXSide: 6, shoulderXSide: 5,
+    headSide: 6, headUp: 82, marksShift: 0,
+  };
+  const NECK_W = 30;
+  // The head with its neck (behind the head, down to the body's top), its hair layers and what the hair needs to be
+  // rebuilt when the head turns (turnHead).
+  function headWithNeck(c, h) {
+    const hp = head(c, h);
+    const x = NECK_W / 2, y0 = f1(R * 0.55), y1 = SKEL.headUp + 2;
+    hp.back.prepend(h.g({ class: 'rig-neck' },
+      h.el('rect', { x: -x, y: y0, width: NECK_W, height: f1(y1 - y0), fill: c.skin }),
+      h.el('path', { d: `M${-x} ${y0}V${y1}M${x} ${y0}V${y1}`, fill: 'none', ...h.ink })));
+    hp.c = c; hp.h = h; hp.hairKey = null;
+    return hp;
+  }
+  // The head turn: the face and the ears (turnHead above), then the hair for the quantized turn (mirrored when the
+  // head turns left).
+  function turnHuman(hp, turn, back) {
+    turnHead(hp, turn, back);
+    const q = Math.round(Math.abs(turn) * 10) / 10, key = `${back ? 1 : 0}:${q}`;
+    if (key !== hp.hairKey) {
+      hp.hairKey = key;
+      const hr = hair(hp.c.style || 'short', q, back, hp.c, hp.h);
+      hp.hairBack.innerHTML = ''; hp.hairFront.innerHTML = '';
+      hp.hairBack.append(...hr.behind); hp.hairFront.append(...hr.front);
+    }
+    const m = turn < 0 && !back ? 'scale(-1 1)' : '';
+    hp.hairBack.setAttribute('transform', m); hp.hairFront.setAttribute('transform', m);
+  }
+  // Hands (the wrist at 0,0, the fingers toward -y): the traced hand sheet (figure-art.js), in the skin color; the
+  // keeper's gloves in the glove colors.
+  const HS = () => window.DuelFigureArt?.hands || {};
+  const SHAPE_OF = { ball: 'ready', fist: 'grip', ready: 'ready', rock: 'rock', paper: 'paper', open: 'open', scissors: 'scissors', point: 'scissors', glove: 'glove' };
+  const traced = (shape) => (c, h) => {
+    const s = HS()[SHAPE_OF[shape]];
+    if (!s) return h.blob([h.circle(0, -14, 15)], c.fur);
+    const fill = (cls) => ({ skin: c.skin, glove: T('glove'), band: T('glove-band') }[cls] || c.skin);
+    return h.g({},
+      h.el('path', { d: s.s, fill: T('outline'), 'fill-rule': 'evenodd' }),
+      h.el('path', { d: s.open, fill: 'none', stroke: T('outline'), 'stroke-width': f1(h.w || 4), 'stroke-linejoin': 'round', 'stroke-linecap': 'butt' }),
+      ...s.f.map(([cls, d]) => h.el('path', { d, fill: fill(cls), 'fill-rule': 'evenodd' })),
+      h.el('rect', { x: f1(-s.wi + 0.4), y: -4, width: f1(s.wi * 2 - 0.8), height: 6.5, fill: shape === 'glove' ? c.skin : c.skin }));
+  };
+  const hands = Object.fromEntries(Object.keys(SHAPE_OF).map((k) => [k, traced(k)]));
+
+  window.DuelHuman = { R, head, turnHead, hair, faces, HAIR, SKEL };
+  MS.register({
+    id: 'human', name: 'Human', plural: 'Humans', defaultFace: 'neutral', faceAlias: {}, facePrefix: 'H',
+    faceNames: Object.fromEntries(Object.keys(faces).map((k) => [k, k[0].toUpperCase() + k.slice(1)])),
+    farEye: 1,   // in a near profile the eye on the side the face turns to slides behind the nose
+    colors: { fur: T('skin-3'), skin: T('skin-3'), light: T('skin-3'), hair: T('hair-2'), shirt: T('shirt-1'), foot: T('shoe'), style: 'short' },
+    // the player's colors (the loadout carries the look)
+    colorsFor: (l) => ({ fur: T(l.skin), skin: T(l.skin), light: T(l.skin), hair: T(l.hairColor), shirt: T(l.shirt), foot: T('shoe'), style: l.hair }),
+    lookKey: (l) => [l.skin, l.hair, l.hairColor, l.shirt].join(':'),
+    skel: SKEL,
+    armW: 15, legW: 15, foot: [27, 13],
+    tail: null,
+    avatarBox: 104,
+    head: headWithNeck, turnHead: turnHuman,
+    faces, hands,
+  });
 })();

@@ -46,10 +46,10 @@ const document = { createElementNS: (ns, t) => new El(t), createElement: (t) => 
 const window = { document, matchMedia: () => ({ matches: true, addEventListener() {} }), addEventListener() {} };
 window.window = window;
 const localStorage = { getItem: (k) => store[k] ?? null, setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } };
-const sandbox = { window, document, localStorage, performance: { now: () => 0 }, requestAnimationFrame: () => 0, setTimeout, clearTimeout, console, Math, Promise, JSON };
+const sandbox = { window, document, localStorage, performance: { now: () => 0 }, requestAnimationFrame: () => 0, setTimeout, clearTimeout, console, Math, Promise, JSON, URL, location: { href: 'http://localhost/' } };
 window.localStorage = localStorage;
 vm.createContext(sandbox);
-for (const f of ['scenes/kit.js', 'figures/avatar.js', 'figures/figure-art.js', 'figures/human.js', 'figures/rig.js', 'figures/expressions.js', 'figures/props.js']) {
+for (const f of ['scenes/kit.js', 'figures/avatar.js', 'figures/figure-art.js', 'mascots/compat.js', 'mascots/cosmetics.js', 'mascots/rig.js', 'mascots/outfits.js', 'mascots/human.js', 'figures/rig.js', 'figures/expressions.js', 'figures/props.js']) {
   vm.runInContext(fs.readFileSync(path.join(JS, f), 'utf8'), sandbox, { filename: f });
 }
 const M = window.DuelFigures, A = window.DuelAvatar, X = window.DuelExpressions;
@@ -75,12 +75,13 @@ for (const [kind, ids] of Object.entries(A.OPTIONS)) {
     }
   }
 }
-// every hand shape (normal and big), every face
+// every hand shape (the drawn hands; the big RPS hands are sprites from public/art/sprites.json, which this sandbox
+// has none of, so they fall back to the drawn hands), every face
 for (const shape of Object.keys(M.HANDS)) {
   const r = M.create({ pose: { h1: shape, h2: shape, r2: 0 }, idle: false });
-  r.bigHands((k) => k === 2);
+  assert.strictEqual(r.bigHands((k) => k === 2), r, 'bigHands chains');
   clean(svgOf(r), `hand ${shape}`);
-  assert(r.handRadius(2) > r.handRadius(1), `${shape}: the big hand is bigger`);
+  assert(r.handRadius(2) > 0, `${shape}: a hand radius`);
   const [x, y] = r.handMid(2);
   assert(Number.isFinite(x) && Number.isFinite(y), 'handMid is a point');
   r.destroy();

@@ -46,12 +46,14 @@ Every game has an interactive tutorial that runs the real scene and the real rul
   player into a separate matchmaking pool for a while. It never blocks anyone or tells them anything.
 - **Mobile landscape**: one layout for every screen, scaled to fit; phones get fullscreen + an orientation lock where
   the browser allows it and a "turn your phone" overlay when held upright.
-- **Characters drawn in code**: a small rubber-hose rig (noodle limbs as cubic Béziers, poses as data, tweened with
-  easing, idle breathing and blinking): an egg-shaped body, a big round head with ears that follow the head turn, 8
-  hairstyles and 10 expressions with big eyes, all in code (`public/js/figures/human.js`). The hands and the shoes are
-  drawn sheets (`art-source/characters/`) traced into SVG paths by `tools/trace-figures.js` (marching squares,
-  simplification, smooth curves), every area a color class, so one drawing serves every skin tone. The scenes, props,
-  effects, covers and the result card are SVG / canvas built in JavaScript; only the Penalty stadium and its fans are
+- **Characters on the original game's rig**: the rubber-hose mascot rig of the original game (Verso), unchanged in
+  how it poses, dresses and animates a character (noodle limbs as cubic Béziers, poses as data, tweened with easing,
+  idle breathing and blinking, the same shoulders, sleeves, hands, shoes and outfits), with a human species drawn in
+  code (`public/js/mascots/human.js`: a big round head, ears that follow the head turn, 8 hairstyles, 10 expressions).
+  The RPS hands are sprites cut from a drawn sheet (`tools/hand-sprites.js`), the other hands and the shoes are traced
+  into SVG paths (`tools/trace-figures.js`). The clothes come from a ChatGPT kit in the original game's format
+  (`art-source/human-kit/`, `tools/human-kit.js`, references rendered by `tools/kit-renders.js`). The scenes, props,
+  effects, covers and the result card are SVG / canvas built in JavaScript; the Penalty stadium and its fans are
   pictures (`public/art/`, `tools/import-stadium.js`).
 - **Avatar picker**: skin tone, hairstyle, hair color and shirt color, plus a nickname (the two players never wear
   the same shirt in a match).
