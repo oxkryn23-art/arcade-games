@@ -43,9 +43,11 @@
   const S = {
     hip: -74, neck: -178, shoulder: -163, belly: -98, bottom: -58,
     bodyRx: 46, bodyRxSide: 40, bodyTop: 24, bodyTopSide: 22,
-    hipX: 20, hipXSide: 6, headSide: 6, headUp: 70, R: 70,
+    hipX: 20, hipXSide: 6, headSide: 6, headUp: 80, R: 70,
   };
   const SKIN = { id: 'human', skel: S, armW: 15, legW: 17 };
+  // the neck: NECK_W wide, from inside the head down into the body (the head sits headUp - R above the body's top)
+  const NECK_W = 32;
   const FA = () => window.DuelFigureArt || null;
   // the trousers band: the lowest BAND part of the body
   const BAND = 0.2;
@@ -437,7 +439,8 @@
         el('rect', { x: -4000, y: -4000, width: 8000, height: 8000, fill: 'white' }), n.armMaskBody);
       n.armMid = g({ class: 'rig-arms-tucked', mask: `url(#${id}-arms)` });
       n.legs = g({}); n.body = g({}); n.head = g({});
-      n.all.append(el('defs', {}, n.armMask), n.armBack, n.legs, n.body, n.head, n.armMid, n.armFront);
+      n.neck = g({ class: 'rig-neck' });
+      n.all.append(el('defs', {}, n.armMask), n.armBack, n.legs, n.neck, n.body, n.head, n.armMid, n.armFront);
       n.flip.append(n.shadow, n.all);
       this.root.append(n.flip);
 
@@ -459,6 +462,10 @@
       n.belt = el('path', { fill: 'none', ...ink, 'stroke-width': 3.5, 'clip-path': `url(#${id}-body)` });
       n.bodyEdge = el('path', { fill: 'none', ...ink });
       n.body.append(el('defs', {}, n.clip), n.bodyPath, n.pants, n.belt, n.bodyEdge);
+      // the neck: skin with outlined sides, behind the body (its foot) and the head (its top)
+      { const top = -(S.headUp - S.R * 0.6), x = NECK_W / 2;
+        n.neck.append(el('rect', { x: -x, y: f1(top), width: NECK_W, height: f1(18 - top), fill: c.skin }),
+          el('path', { d: `M${-x} ${f1(top)}V18M${x} ${f1(top)}V18`, fill: 'none', ...ink })); }
 
       // head (figures/human.js): hair behind + ears, the head, the face (every expression built once, one shown), the
       // hair in front
@@ -564,7 +571,7 @@
 
     // Big gesture hands (the RPS table): fn(k, shape, rig) -> truthy for an arm that draws its gesture big.
     bigHands(fn, { scale = 0.36 } = {}) {
-      this.big = fn ? { fn, k: 1.55 * (scale / 0.36) } : null;
+      this.big = fn ? { fn, k: 1.12 * (scale / 0.36) } : null;
       for (const k of [1, 2]) this.n[`arm${k}`].shape = null;
       this.apply(this.cur, performance.now());
       return this;
@@ -676,6 +683,7 @@
       // head
       const neck = B([lerp(0, S.headSide, turn), S.neck - S.hip]);
       n.head.setAttribute('transform', `translate(${f1(neck[0] + p.hx)} ${f1(neck[1] + p.hy)}) rotate(${f1(p.brot + p.hrot)})`);
+      n.neck.setAttribute('transform', n.head.getAttribute('transform'));
       n.headInner.setAttribute('transform', `translate(0 ${-S.headUp})`);
       const ht = clamp(turn + p.ht, -1, 1);
       H().turnHead(n.hp, ht, back);
@@ -749,6 +757,9 @@
         }
         arm.sleeve.style.display = sb ? '' : 'none';
         if (sb) { arm.sO.setAttribute('d', sb.outer); arm.sF.setAttribute('d', sb.inner); }
+        // an arm in front of the body: its sleeve is part of the shirt, so the sleeve's outline shows only outside the
+        // body (masked out of it), never as lines across the chest
+        if (front) arm.sO.setAttribute('mask', `url(#rig${this.id}-arms)`); else arm.sO.removeAttribute('mask');
         const key = `${shape}:${big}`;
         if (arm.shape !== key) {
           arm.handInner.innerHTML = '';

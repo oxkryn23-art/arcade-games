@@ -130,14 +130,14 @@
   // ---------------- poses (data) ----------------
   // The keeper catches with both gloves overhead: the ball sits at BALL_AT (character units), BALL_R big. The dives
   // are this same overhead reach, rotated, so the gloves meet the ball at the corner (aim points come from the poses).
-  const BALL_AT = [0, -372], BALL_R = 34;
+  const BALL_AT = [0, -384], BALL_R = 34;
   // Offset of a point in the prop frame of a hand (rig: translate(end) rotate(r) translate(along, across)).
   const propAt = (end, r, pt) => {
     const a = -r * D2R, dx = pt[0] - end[0], dy = pt[1] - end[1];
     return [Math.round((dx * Math.cos(a) - dy * Math.sin(a)) * 10) / 10, Math.round((dx * Math.sin(a) + dy * Math.cos(a)) * 10) / 10, 0];
   };
   const GLOVES = { h1: 'glove', h2: 'glove' };   // every keeper pose wears the gloves
-  const OVER = { ...GLOVES, a1: [-66, -334, -1.1], a2: [66, -334, 1.1], r1: -84, r2: -96, exact1: 1, exact2: 1 };
+  const OVER = { ...GLOVES, a1: [-66, -346, -1.1], a2: [66, -346, 1.1], r1: -84, r2: -96, exact1: 1, exact2: 1 };
   OVER.p1 = propAt(OVER.a1, OVER.r1, BALL_AT);
   OVER.p2 = propAt(OVER.a2, OVER.r2, BALL_AT);
 
