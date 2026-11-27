@@ -834,7 +834,7 @@
     S.match = null;
     let blob = null;
     try {
-      blob = await DuelCard.render({ outcome, name: mine.name, oppName: opp.name, gameName: gName, look: A.get(), oppLook: opp.look || null, mode: d.mode });
+      blob = await DuelCard.render({ outcome, name: mine.name, oppName: opp.name, gameName: gName, look: A.get(), mode: d.mode, seed: info?.matchId || null });
       if (cardUrl) URL.revokeObjectURL(cardUrl);
       cardUrl = URL.createObjectURL(blob);
       pic.onload = () => cardEl.classList.remove('failed');
