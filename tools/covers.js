@@ -9,6 +9,14 @@ const BASE = process.env.BASE_URL || 'http://localhost:3000';
 const OUT = path.join(__dirname, '..', 'public', 'covers');
 const W = 1152, H = 648;   // the 16:9 stage; the cover is its middle 16:10 (1037 x 648)
 // per game: the lab context (selects), the reveal and when to catch it (ms after it starts)
+// the two players' looks on the covers (the clothes kit), per game
+const BASE_LOOK = { you: { skin: 'skin-2', hair: 'short', hairColor: 'hair-2', shirt: 'shirt-1', hat: 'cap', outfit: 'stripedtee', feet: 'sneakers' },
+  opp: { skin: 'skin-4', hair: 'ponytail', hairColor: 'hair-5', shirt: 'shirt-2', hat: 'none', outfit: 'bomber', feet: 'hightops' } };
+const LOOKS = {
+  rps: BASE_LOOK, rps_minus_one: { you: { ...BASE_LOOK.you, hat: 'none', hair: 'curly', hairColor: 'hair-1', outfit: 'hoodie' }, opp: { ...BASE_LOOK.opp, hair: 'bun', outfit: 'aloha' } },
+  penalty: { you: { ...BASE_LOOK.you, hat: 'none', outfit: 'jersey', feet: 'cleats' }, opp: { ...BASE_LOOK.opp, outfit: 'tracksuit', feet: 'runners' } },
+  shootout: { you: { ...BASE_LOOK.you, hat: 'cowboy', outfit: 'western', feet: 'cowboyboots' }, opp: { ...BASE_LOOK.opp, hat: 'cowboy', outfit: 'leather', feet: 'chelsea' } },
+};
 const SHOTS = {
   rps: { ctx: [], moves: ['rock', 'scissors'], at: 900 },
   rps_minus_one: { ctx: [['phase', 'pick']], moves: [['rock', 'paper'], ['scissors', 'rock']], at: 1100 },
@@ -28,6 +36,7 @@ const SHOTS = {
         for (const [k, v] of ${JSON.stringify(s.ctx)}) { const el = $('#ctxBox select[name=' + k + ']'); el.value = v; el.dispatchEvent(new Event('change')); await wait(150); }
         $('#controls').style.display = 'none';
         document.querySelectorAll('.you-arrow, .scene-you').forEach((n) => n.remove());
+        DuelAvatar.set(${JSON.stringify(LOOKS[game].you)}); DuelAvatar.setOpponent(${JSON.stringify(LOOKS[game].opp)});
         lab.mount(); await wait(2800);
         lab.reveal(${JSON.stringify(s.moves[0])}, ${JSON.stringify(s.moves[1])});
         await wait(${s.at});

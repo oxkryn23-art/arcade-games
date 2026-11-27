@@ -15,7 +15,7 @@ const URL = `http://localhost:${process.env.PORT}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const emit = (s, ev, data) => new Promise((r) => s.emit(ev, data, r));
 const pid = () => crypto.randomBytes(16).toString('hex');
-const look = { skin: 'skin-2', hair: 'curly', hairColor: 'hair-3', shirt: 'shirt-4' };
+const look = { skin: 'skin-2', hair: 'curly', hairColor: 'hair-3', shirt: 'shirt-4', hat: 'beanie', outfit: 'hoodie', feet: 'chelsea' };
 async function waitFor(fn, ms = 20000, what = 'condition') {
   const t0 = Date.now();
   while (Date.now() - t0 < ms) { if (fn()) return; await sleep(25); }

@@ -550,9 +550,12 @@
     return false;
   }
 
-  // ---------------- the avatar picker: skin, hairstyle, hair color, shirt color, and the nickname ----------------
+  // ---------------- the avatar picker: skin, hairstyle, hair color, shirt color, the clothes, and the nickname ------
+  // The clothes (outfit, hat, shoes) step through their items with arrows, as in the original game's customizer.
   let cust = null;
   const OPT_KINDS = ['skin', 'hair', 'hairColor', 'shirt'];
+  const CYCLE_KINDS = ['outfit', 'hat', 'feet'];
+  const itemLabel = (kind, id) => window.VersoCosmetics?.ITEMS?.[kind]?.find((i) => i.id === id)?.label || id;
   function swatch(kind, id) {
     if (kind === 'hair') return `<span class="opt-hair">${DuelFigures.avatarSvg({ ...cust.draft, hair: id }, 'you', { face: 'smile' })}</span>`;
     return `<span class="opt-dot" style="background: var(--${id})"></span>`;
@@ -568,7 +571,14 @@
   function renderCust() {
     if (!cust) return;
     $('#custOpts').innerHTML = OPT_KINDS.map((kind) => `<div class="opt-row" role="radiogroup" aria-label="${esc(A.LABELS[kind])}"><span class="opt-label">${esc(A.LABELS[kind])}</span>
-      <div class="opt-list">${A.OPTIONS[kind].map((id, i) => `<button type="button" class="opt" role="radio" data-kind="${kind}" data-opt="${id}" aria-checked="${cust.draft[kind] === id}" aria-label="${esc(A.LABELS[id] || `${A.LABELS[kind]} ${i + 1}`)}" title="${esc(A.LABELS[id] || `${A.LABELS[kind]} ${i + 1}`)}">${swatch(kind, id)}</button>`).join('')}</div></div>`).join('');
+      <div class="opt-list">${A.OPTIONS[kind].map((id, i) => `<button type="button" class="opt" role="radio" data-kind="${kind}" data-opt="${id}" aria-checked="${cust.draft[kind] === id}" aria-label="${esc(A.LABELS[id] || `${A.LABELS[kind]} ${i + 1}`)}" title="${esc(A.LABELS[id] || `${A.LABELS[kind]} ${i + 1}`)}">${swatch(kind, id)}</button>`).join('')}</div></div>`).join('')
+      + CYCLE_KINDS.map((kind) => {
+        const ids = A.OPTIONS[kind], i = Math.max(0, ids.indexOf(cust.draft[kind])), name = esc(itemLabel(kind, cust.draft[kind])), what = esc(A.LABELS[kind].toLowerCase());
+        return `<div class="opt-row opt-cycle"><span class="opt-label">${esc(A.LABELS[kind])}</span><div class="opt-cycler">`
+          + `<button type="button" class="btn btn-ghost btn-sm opt-step" data-cycle="${kind}" data-dir="-1" aria-label="Previous ${what}">${DuelIcons.svg('chevron-left')}</button>`
+          + `<span class="opt-name" aria-live="polite">${name}<small>${i + 1} / ${ids.length}</small></span>`
+          + `<button type="button" class="btn btn-ghost btn-sm opt-step" data-cycle="${kind}" data-dir="1" aria-label="Next ${what}">${DuelIcons.svg('chevron-right')}</button></div></div>`;
+      }).join('');
   }
   function custSet(kind, id) {
     cust.draft = A.valid({ ...cust.draft, [kind]: id });
@@ -1034,7 +1044,18 @@
     $('#custSave').addEventListener('click', custSave);
     $('#custRandom').addEventListener('click', () => { if (!cust) return; cust.draft = A.random(); cust.stage?.set(cust.draft); cust.stage?.rig?.mood('GEN-6'); renderCust(); DuelSound.play('ui-click', { volume: 0.6 }); });
     $('#custDice').addEventListener('click', () => { $('#custNick').value = DuelNames.random(); });
-    $('#custOpts').addEventListener('click', (e) => { const b = e.target.closest('[data-opt]'); if (b && cust) { DuelSound.play('ui-click', { volume: 0.6 }); custSet(b.dataset.kind, b.dataset.opt); } });
+    $('#custOpts').addEventListener('click', (e) => {
+      if (!cust) return;
+      const b = e.target.closest('[data-opt]');
+      if (b) { DuelSound.play('ui-click', { volume: 0.6 }); custSet(b.dataset.kind, b.dataset.opt); return; }
+      const c = e.target.closest('[data-cycle]');
+      if (c) {
+        const kind = c.dataset.cycle, ids = A.OPTIONS[kind], i = ids.indexOf(cust.draft[kind]);
+        DuelSound.play('ui-click', { volume: 0.6 });
+        custSet(kind, ids[(i + Number(c.dataset.dir) + ids.length) % ids.length]);
+        $(`#custOpts [data-cycle="${kind}"][data-dir="${c.dataset.dir}"]`)?.focus();
+      }
+    });
     $('#dlgCustomize').addEventListener('close', custClosed);
     $('#dlgCustomize').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'custNick') { e.preventDefault(); custSave(); } });
     $('#brand').addEventListener('click', (e) => { e.preventDefault(); if (!S.match && !S.tutorial) show('viewHome'); });

@@ -49,7 +49,7 @@ const localStorage = { getItem: (k) => store[k] ?? null, setItem: (k, v) => { st
 const sandbox = { window, document, localStorage, performance: { now: () => 0 }, requestAnimationFrame: () => 0, setTimeout, clearTimeout, console, Math, Promise, JSON, URL, location: { href: 'http://localhost/' } };
 window.localStorage = localStorage;
 vm.createContext(sandbox);
-for (const f of ['scenes/kit.js', 'figures/avatar.js', 'figures/figure-art.js', 'mascots/compat.js', 'mascots/cosmetics.js', 'mascots/rig.js', 'mascots/outfits.js', 'mascots/human.js', 'figures/rig.js', 'figures/expressions.js', 'figures/props.js']) {
+for (const f of ['scenes/kit.js', 'figures/avatar.js', 'figures/figure-art.js', 'mascots/compat.js', 'mascots/cosmetics.js', 'mascots/rig.js', 'mascots/outfits.js', 'mascots/hair-art.js', 'mascots/human.js', 'figures/rig.js', 'figures/expressions.js', 'figures/props.js']) {
   vm.runInContext(fs.readFileSync(path.join(JS, f), 'utf8'), sandbox, { filename: f });
 }
 const M = window.DuelFigures, A = window.DuelAvatar, X = window.DuelExpressions;
@@ -57,7 +57,11 @@ const M = window.DuelFigures, A = window.DuelAvatar, X = window.DuelExpressions;
 function clean(markup, what) {
   assert(!/NaN|undefined|Infinity/.test(markup), `${what}: no NaN / undefined in the SVG`);
   assert(!/#[0-9a-f]{3,8}\b/i.test(markup.replace(/url\(#[^)]+\)|href="#[^"]+"/g, '')), `${what}: no hard-coded color`);
-  assert(!/<image|\.webp|\.png|\/assets\//.test(markup), `${what}: no images`);
+  // (the only images: the clothes kit's sprites and the RPS hand sprites in public/art/, mascots/cosmetics.js)
+  for (const [im] of markup.matchAll(/<image\b[^>]*>/g)) {
+    assert(/href="[^"]*art\/((hat|shoe|outfit)-[a-z]+-[a-z-]+\.(webp|svg)|hands\/hand-human-[a-z]+-(back|palm)\.webp)"/.test(im), `${what}: an image from the kit only (${im.slice(0, 120)})`);
+  }
+  assert(!/\/assets\//.test(markup), `${what}: no images from elsewhere`);
 }
 const svgOf = (r) => { const s = new El('svg'); s.append(r.root); return s.outerHTML; };
 
@@ -70,7 +74,8 @@ for (const [kind, ids] of Object.entries(A.OPTIONS)) {
       const r = M.create({ look, pose, idle: false });
       const svg = svgOf(r);
       clean(svg, `${kind}=${id} ${JSON.stringify(pose)}`);
-      assert(svg.includes(`var(--${look.skin})`) && svg.includes(`var(--${look.shirt})`), 'skin and shirt colors are the look tokens');
+      assert(svg.includes(`var(--${look.skin})`) && (look.outfit !== 'tee' || svg.includes(`var(--${look.shirt})`)), 'skin and shirt colors are the look tokens');
+      if (look.outfit !== 'tee' && look.outfit !== 'none') assert(svg.includes(`outfit-${look.outfit}-`), `${look.outfit}: the garment's texture`);
       r.destroy(); n++;
     }
   }

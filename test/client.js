@@ -18,11 +18,12 @@ function walk(dir, out = []) {
 }
 const files = walk('.');
 
-// 1. no raster images in the app but the Penalty stadium and its fans (public/art/): the people are traced into paths,
+// 1. no raster images in the app but the Penalty stadium and its fans and the clothes kit's sprites (public/art/): the people are traced into paths,
 // the covers are rendered from the scenes, the README screenshots are documentation, art-source/ holds the source sheets
 const images = files.filter((f) => /\.(png|jpe?g|gif|webp|ico|bmp|avif)$/i.test(f) && !/^(\.\/)?(public\/covers|public\/art|docs\/screenshots|art-source)\//.test(f.replace(/^\.\//, '')));
 assert.deepStrictEqual(images, [], 'no image files outside the stadium art, the rendered covers, the docs screenshots and the source sheets');
-const svgs = files.filter((f) => f.endsWith('.svg'));
+// (the clothes kit's outfit textures are traced SVGs in public/art/: tools/import-kit.js)
+const svgs = files.filter((f) => f.endsWith('.svg') && !/^(\.\/)?public\/art\/outfit-[a-z]+-(front|three|side|back)\.svg$/.test(f));
 assert.deepStrictEqual(svgs.map((f) => f.replace(/^\.\//, '')), ['public/favicon.svg'], 'the only SVG file is the code-written favicon');
 
 // 2. colors only from the theme tokens

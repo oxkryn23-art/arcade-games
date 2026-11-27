@@ -1,4 +1,4 @@
-// The avatar store: my look { skin, hair, hairColor, shirt } (kept in this browser) and the opponent's look of the
+// The avatar store: my look { skin, hair, hairColor, shirt, hat, outfit, feet } (kept in this browser) and the opponent's look of the
 // current match. Every value is a theme token name (skin-1.., hair-1.., shirt-1..) or a hair style id, so the colors
 // stay in server/themes.js. The same option lists are validated by the server (server/avatar.js).
 //
@@ -10,12 +10,16 @@
     hair: ['short', 'crop', 'curly', 'long', 'bun', 'ponytail', 'spiky', 'buzz'],
     hairColor: ['hair-1', 'hair-2', 'hair-3', 'hair-4', 'hair-5', 'hair-6'],
     shirt: ['shirt-1', 'shirt-2', 'shirt-3', 'shirt-4', 'shirt-5', 'shirt-6', 'shirt-7', 'shirt-8'],
+    // the clothes (the human clothes kit, mascots/cosmetics.js ITEMS: the same ids in the same order)
+    hat: ['none', 'cap', 'beanie', 'bucket', 'cowboy', 'headband'],
+    outfit: ['tee', 'stripedtee', 'polo', 'jersey', 'aloha', 'ringer', 'hoodie', 'denim', 'sweater', 'flannel', 'tracktop', 'bomber', 'leather', 'puffer', 'raincoat', 'blazer', 'overalls', 'mechanic', 'pajamas', 'tracksuit', 'western'],
+    feet: ['natural', 'sneakers', 'hightops', 'loafers', 'chelsea', 'runners', 'cleats', 'cowboyboots', 'rainboots', 'slippers', 'skate'],
   };
   const LABELS = {
-    skin: 'Skin tone', hair: 'Hairstyle', hairColor: 'Hair color', shirt: 'Shirt color',
+    skin: 'Skin tone', hair: 'Hairstyle', hairColor: 'Hair color', shirt: 'Shirt color', hat: 'Hat', outfit: 'Outfit', feet: 'Shoes',
     short: 'Short', crop: 'Crop', curly: 'Curly', long: 'Long', bun: 'Bun', ponytail: 'Ponytail', spiky: 'Spiky', buzz: 'Buzz',
   };
-  const DEFAULT = { skin: 'skin-3', hair: 'short', hairColor: 'hair-2', shirt: 'shirt-1' };
+  const DEFAULT = { skin: 'skin-3', hair: 'short', hairColor: 'hair-2', shirt: 'shirt-1', hat: 'none', outfit: 'tee', feet: 'natural' };
   const KEY = 'duel_avatar';
   const pick = (l) => l[Math.floor(Math.random() * l.length)];
 

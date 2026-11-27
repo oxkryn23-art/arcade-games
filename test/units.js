@@ -1,5 +1,7 @@
 // Unit tests of the pure server modules: matchmaking, the anti-bot check, challenges, avatars, names, the theme.
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const matchmaking = require('../server/matchmaking');
 const anticheat = require('../server/anticheat');
 const challenges = require('../server/challenges');
@@ -67,12 +69,20 @@ function testChallenges() {
 }
 
 function testAvatarAndNames() {
-  assert.deepStrictEqual(avatar.valid({ skin: 'skin-5', hair: 'mohawk', shirt: 'shirt-9' }), { skin: 'skin-5', hair: 'short', hairColor: 'hair-2', shirt: 'shirt-1' });
+  assert.deepStrictEqual(avatar.valid({ skin: 'skin-5', hair: 'mohawk', shirt: 'shirt-9', outfit: 'cape', feet: 'skate' }), { skin: 'skin-5', hair: 'short', hairColor: 'hair-2', shirt: 'shirt-1', hat: 'none', outfit: 'tee', feet: 'skate' });
+  // the clothes lists match the client's (figures/avatar.js) and the cosmetics registry (mascots/cosmetics.js ITEMS)
+  { const cli = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'mascots', 'cosmetics.js'), 'utf8'), av = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'figures', 'avatar.js'), 'utf8');
+    for (const kind of ['hat', 'outfit', 'feet']) {
+      const block = cli.slice(cli.indexOf(`    ${kind}: [`), cli.indexOf('],', cli.indexOf(`    ${kind}: [`)));
+      const ids = [...block.matchAll(/id: '([a-z]+)'(, label: '[^']+')?( }|, hidden)/g)].filter((m) => !m[3].includes('hidden')).map((m) => m[1]);
+      assert.deepStrictEqual(avatar.OPTIONS[kind], ids, `${kind}: the server's list = the cosmetics registry`);
+      assert(av.includes(`${kind}: [${ids.map((i) => `'${i}'`).join(', ')}]`), `${kind}: the client's list = the server's`);
+    } }
   for (let i = 0; i < 50; i++) { const r = avatar.random(); assert.deepStrictEqual(avatar.valid(r), r); }
   // every avatar option is a theme token (or a hair style id)
   for (const kind of ['skin', 'hairColor', 'shirt']) for (const id of avatar.OPTIONS[kind]) assert(themes.ALL[id], `--${id} is a token`);
   // the browser's option lists are the same
-  const fs = require('fs'), src = fs.readFileSync(require.resolve('../public/js/figures/avatar.js'), 'utf8');
+  const src = fs.readFileSync(require.resolve('../public/js/figures/avatar.js'), 'utf8');
   for (const [kind, ids] of Object.entries(avatar.OPTIONS)) assert(src.includes(`${kind}: [${ids.map((x) => `'${x}'`).join(', ')}]`), `${kind}: same list in the browser`);
   for (let i = 0; i < 200; i++) { const n = names.random(); assert(!names.problem(n), `random name ${n} is valid`); }
   for (const bad of ['ab', 'x'.repeat(19), 'admin', 'You', 'AI', '<b>hi</b>']) assert(names.problem(names.clean(bad)), `refused: ${bad}`);

@@ -7,7 +7,7 @@ const { launch } = require('./cdp');
 
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
 const OUT = path.join(__dirname, '..', 'docs', 'screenshots');
-const LOOK = JSON.stringify({ skin: 'skin-3', hair: 'curly', hairColor: 'hair-1', shirt: 'shirt-1' });
+const LOOK = JSON.stringify({ skin: 'skin-3', hair: 'curly', hairColor: 'hair-1', shirt: 'shirt-1', hat: 'none', outfit: 'hoodie', feet: 'sneakers' });
 // a returning visitor: a saved look and nickname (so the first-visit avatar picker stays closed)
 const SEED = `localStorage.removeItem('duel_pid'); localStorage.setItem('duel_avatar', ${JSON.stringify(LOOK)}); localStorage.setItem('duel_name', 'QuietOtter'); localStorage.setItem('duel_tutorials', JSON.stringify({ rps: 'done', rps_minus_one: 'done', penalty: 'done', shootout: 'done' }));`;
 const problems = [];

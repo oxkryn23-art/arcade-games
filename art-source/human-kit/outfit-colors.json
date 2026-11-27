@@ -1,0 +1,267 @@
+{
+  "stripedtee": {
+    "kit": "stripedtee",
+    "main": "#FCDBB5",
+    "sleeve": {
+      "color": "#F9E0BA",
+      "cuff": null,
+      "cuffW": 0,
+      "stripes": null
+    },
+    "leg": null,
+    "long": false
+  },
+  "polo": {
+    "kit": "polo",
+    "main": "#E2552C",
+    "sleeve": {
+      "color": "#E2552C",
+      "cuff": null,
+      "cuffW": 0,
+      "stripes": null
+    },
+    "leg": null,
+    "long": false
+  },
+  "jersey": {
+    "kit": "jersey",
+    "main": "#F5AA2A",
+    "sleeve": {
+      "color": "#F5AB28",
+      "cuff": null,
+      "cuffW": 0,
+      "stripes": null
+    },
+    "leg": null,
+    "long": false
+  },
+  "aloha": {
+    "kit": "aloha",
+    "main": "#2E8693",
+    "sleeve": {
+      "color": "#308491",
+      "cuff": null,
+      "cuffW": 0,
+      "stripes": "#FCD9B0"
+    },
+    "leg": null,
+    "long": false
+  },
+  "ringer": {
+    "kit": "ringer",
+    "main": "#FDDCB5",
+    "sleeve": {
+      "color": "#FEDCB3",
+      "cuff": null,
+      "cuffW": 0,
+      "stripes": null
+    },
+    "leg": null,
+    "long": false
+  },
+  "hoodie": {
+    "kit": "hoodie",
+    "main": "#586273",
+    "sleeve": {
+      "color": "#586172",
+      "cuff": "#292F3B",
+      "cuffW": 0.15,
+      "stripes": null
+    },
+    "leg": null,
+    "long": true
+  },
+  "denim": {
+    "kit": "denim",
+    "main": "#4A6894",
+    "sleeve": {
+      "color": "#4B6894",
+      "cuff": null,
+      "cuffW": 0,
+      "stripes": null
+    },
+    "leg": null,
+    "long": true
+  },
+  "sweater": {
+    "kit": "sweater",
+    "main": "#674D6E",
+    "sleeve": {
+      "color": "#694F70",
+      "cuff": "#5E4853",
+      "cuffW": 0.12,
+      "stripes": null
+    },
+    "leg": null,
+    "long": true
+  },
+  "flannel": {
+    "kit": "flannel",
+    "main": "#763A41",
+    "sleeve": {
+      "color": "#CD4F3D",
+      "cuff": null,
+      "cuffW": 0,
+      "stripes": "#723A40"
+    },
+    "leg": null,
+    "long": true
+  },
+  "tracktop": {
+    "kit": "tracktop",
+    "main": "#31486E",
+    "sleeve": {
+      "color": "#30486E",
+      "cuff": "#FBE6C5",
+      "cuffW": 0.13,
+      "stripes": null
+    },
+    "leg": null,
+    "long": true
+  },
+  "bomber": {
+    "kit": "bomber",
+    "main": "#EA8739",
+    "sleeve": {
+      "color": "#EB8839",
+      "cuff": "#4C4A4E",
+      "cuffW": 0.15,
+      "stripes": null
+    },
+    "leg": null,
+    "long": true
+  },
+  "leather": {
+    "kit": "leather",
+    "main": "#4B494E",
+    "sleeve": {
+      "color": "#4D4B4F",
+      "cuff": "#22262D",
+      "cuffW": 0.02,
+      "stripes": null
+    },
+    "leg": null,
+    "long": true
+  },
+  "puffer": {
+    "kit": "puffer",
+    "main": "#4C7892",
+    "sleeve": {
+      "color": "#4D7892",
+      "cuff": "#3B424D",
+      "cuffW": 0.08,
+      "stripes": "#272C36"
+    },
+    "leg": null,
+    "long": true
+  },
+  "raincoat": {
+    "kit": "raincoat",
+    "main": "#F9BB3A",
+    "sleeve": {
+      "color": "#FABC3A",
+      "cuff": null,
+      "cuffW": 0,
+      "stripes": null
+    },
+    "leg": null,
+    "long": true
+  },
+  "blazer": {
+    "kit": "blazer",
+    "main": "#384D6D",
+    "sleeve": {
+      "color": "#3A4F70",
+      "cuff": "#F5F4F4",
+      "cuffW": 0.08,
+      "stripes": null
+    },
+    "leg": null,
+    "long": true
+  },
+  "overalls": {
+    "kit": "overalls",
+    "main": "#4E7297",
+    "sleeve": {
+      "color": "#FDE4C1",
+      "cuff": null,
+      "cuffW": 0,
+      "stripes": null
+    },
+    "leg": {
+      "color": "#4E7297",
+      "cuff": "#A3B6CA",
+      "cuffW": 0.13,
+      "stripes": null
+    },
+    "long": false
+  },
+  "mechanic": {
+    "kit": "mechanic",
+    "main": "#4A778C",
+    "sleeve": {
+      "color": "#4C788D",
+      "cuff": "#495761",
+      "cuffW": 0.13,
+      "stripes": null
+    },
+    "leg": {
+      "color": "#4B788D",
+      "cuff": "#46545D",
+      "cuffW": 0.11,
+      "stripes": null
+    },
+    "long": true
+  },
+  "pajamas": {
+    "kit": "pajamas",
+    "main": "#FBE6C5",
+    "sleeve": {
+      "color": "#FDE4C0",
+      "cuff": "#406C8B",
+      "cuffW": 0.14,
+      "stripes": null
+    },
+    "leg": {
+      "color": "#FDE4C1",
+      "cuff": "#43728F",
+      "cuffW": 0.13,
+      "stripes": null
+    },
+    "long": true
+  },
+  "tracksuit": {
+    "kit": "tracksuit",
+    "main": "#6D4A77",
+    "sleeve": {
+      "color": "#6E4B78",
+      "cuff": "#FCE3C2",
+      "cuffW": 0.15,
+      "stripes": null
+    },
+    "leg": {
+      "color": "#6F4D78",
+      "cuff": "#FAE4C5",
+      "cuffW": 0.1,
+      "stripes": null
+    },
+    "long": true
+  },
+  "western": {
+    "kit": "western",
+    "main": "#B4612C",
+    "sleeve": {
+      "color": "#FDE4C1",
+      "cuff": "#F3CBA4",
+      "cuffW": 0.13,
+      "stripes": null
+    },
+    "leg": {
+      "color": "#446E8E",
+      "cuff": "#A0B5C9",
+      "cuffW": 0.12,
+      "stripes": null
+    },
+    "long": true
+  }
+}

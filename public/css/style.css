@@ -280,6 +280,12 @@ dialog input:focus { outline: 3px solid var(--focus); outline-offset: 1px; }
 .opt-dot { display: block; width: 28px; height: 28px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ui-ink) 18%, transparent); }
 .opt-hair { display: block; width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: var(--ui-cream-2); }
 .opt-hair svg { display: block; width: 116%; height: 116%; margin: 8% 0 0 -8%; }
+/* the clothes: an arrow on each side of the item's name */
+.opt-cycler { display: flex; align-items: center; gap: 8px; max-width: 320px; }
+.opt-step { flex: none; width: 40px; height: 40px; padding: 0; display: grid; place-items: center; }
+.opt-step svg { width: 20px; height: 20px; }
+.opt-name { flex: 1; min-width: 0; text-align: center; font: 600 15px/1.2 var(--font-body); color: var(--ui-ink); }
+.opt-name small { display: block; font-size: 11px; color: var(--ui-ink-2); }
 .cust-name { padding-top: 12px; border-top: 1px solid var(--ui-line); }
 .cust-name label { margin: 0 0 6px; }
 .cust-name .note { margin-top: 6px; font-size: 13px; }

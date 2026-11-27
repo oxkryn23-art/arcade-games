@@ -246,20 +246,40 @@
   }
   // The head turn: the face and the ears (turnHead above), then the hair for the quantized turn (mirrored when the
   // head turns left).
+  // The hair: the kit's traced hairstyles (hair-art.js, tools/import-hair.js) per view, drawn twice: whole BEHIND the
+  // head (long hair, volume, a bun or a ponytail) and clipped to the head's ellipse OVER the face (the cap, the
+  // fringe); the hair in the player's hair color, the ties in the hair-tie token, the lines in the outline. The view
+  // follows the turn as the hats and shoes do (front, 3/4, profile, back), mirrored for a turn to the left. Without
+  // the traced art, the code-drawn styles above.
+  let clipN = 0;
+  const VIEW = (a, back) => (back ? 'back' : a < 0.28 ? 'front' : a < 0.8 ? 'three' : 'side');
+  function hairArt(hp, style, v) {
+    const art = window.DuelHairArt?.[style]?.[v];
+    if (!art) return false;
+    const { h, c } = hp;
+    const layers = () => [[art.hair, c.hair], [art.tie, T('hair-tie')], [art.ink, T('outline')]]
+      .filter(([d]) => d).map(([d, fill]) => h.el('path', { d, fill, 'fill-rule': 'evenodd' }));
+    const id = `hh-${++clipN}`;
+    hp.hairBack.append(...layers());
+    hp.hairFront.append(h.el('clipPath', { id }, h.el('ellipse', { cx: 0, cy: 0, rx: R - 1, ry: R * 1.02 - 1 })), h.g({ 'clip-path': `url(#${id})` }, ...layers()));
+    return true;
+  }
   function turnHuman(hp, turn, back) {
     turnHead(hp, turn, back);
-    const q = Math.round(Math.abs(turn) * 10) / 10, key = `${back ? 1 : 0}:${q}`;
+    const style = hp.c.style || 'short', a = Math.abs(turn), v = VIEW(a, back);
+    const art = style !== 'bald' && !!window.DuelHairArt?.[style];
+    const q = Math.round(a * 10) / 10, key = art ? `art:${v}` : `${back ? 1 : 0}:${q}`;
     if (key !== hp.hairKey) {
       hp.hairKey = key;
-      const hr = hair(hp.c.style || 'short', q, back, hp.c, hp.h);
       hp.hairBack.innerHTML = ''; hp.hairFront.innerHTML = '';
-      hp.hairBack.append(...hr.behind); hp.hairFront.append(...hr.front);
+      if (!art || !hairArt(hp, style, v)) {
+        const hr = hair(style, q, back, hp.c, hp.h);
+        hp.hairBack.append(...hr.behind); hp.hairFront.append(...hr.front);
+      }
     }
     const m = turn < 0 && !back ? 'scale(-1 1)' : '';
     hp.hairBack.setAttribute('transform', m); hp.hairFront.setAttribute('transform', m);
   }
-  // Hands (the wrist at 0,0, the fingers toward -y): the traced hand sheet (figure-art.js), in the skin color; the
-  // keeper's gloves in the glove colors.
   const HS = () => window.DuelFigureArt?.hands || {};
   const SHAPE_OF = { ball: 'ready', fist: 'grip', ready: 'ready', rock: 'rock', paper: 'paper', open: 'open', scissors: 'scissors', point: 'scissors', glove: 'glove' };
   const traced = (shape) => (c, h) => {

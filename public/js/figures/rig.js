@@ -18,7 +18,7 @@
   const loadoutOf = (look) => (COS()?.valid ? COS().valid(look) : { ...look });
 
   function create({ look = null, side = 'you', ...opts } = {}) {
-    return M.create({ species: SP, side, hat: false, ...opts, loadout: look ? loadoutOf(look) : null });
+    return M.create({ species: SP, side, ...opts, loadout: look ? loadoutOf(look) : null });
   }
   // the scenes' extras on every rig
   const probe = create({ idle: false });
@@ -49,7 +49,7 @@
       .replace('mascot-avatar-svg', 'figure-avatar-svg mascot-avatar-svg').replace('mascot-figure-svg', 'figure-figure-svg mascot-figure-svg');
   }
   function stage(host, w = 'you', { pose = 'idle', mood = 'idle', idle = true, flip = false } = {}) {
-    const st = M.stage(host, w === 'you' || w === 'opp' ? w : who(w), { pose, mood, idle, flip, hat: false });
+    const st = M.stage(host, w === 'you' || w === 'opp' ? w : who(w), { pose, mood, idle, flip });
     st.svg.classList.add('figure-stage');
     const set = st.set.bind(st);
     st.set = (x) => set(x === 'you' || x === 'opp' ? x : who(x));
