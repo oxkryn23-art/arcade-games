@@ -612,7 +612,21 @@
       n.armBack.append(n.arm1.root); n.armFront.append(n.arm2.root);
       // the wrist cross-fade of sprite hands: transparent at the sprite's cut (x 0), opaque from FADE px on
       n.fade = `${id}-fade`;
+      // the sprite hands in the player's own skin (skin.handSkin = the sheet's skin color, RGB): every channel divided by
+      // it (the skin becomes white, the lines stay dark), multiplied by the skin token, and laid over the sprite by its
+      // lightness (the skin: all of it; the outline: none)
+      const hk = sk.handSkin;
+      n.handTint = hk ? `${id}-tint` : null;
       this.root.prepend(el('defs', {},
+        hk && el('filter', { id: n.handTint, 'color-interpolation-filters': 'sRGB', x: '-5%', y: '-5%', width: '110%', height: '110%' },
+          el('feColorMatrix', { type: 'matrix', values: `${f1(255 / hk[0] * 1000) / 1000} 0 0 0 0 0 ${f1(255 / hk[1] * 1000) / 1000} 0 0 0 0 0 ${f1(255 / hk[2] * 1000) / 1000} 0 0 0 0 0 1 0`, result: 'n' }),
+          el('feFlood', { 'flood-color': c.skin || c.fur, result: 'k' }),
+          el('feBlend', { in: 'n', in2: 'k', mode: 'multiply', result: 'm' }),
+          // only the skin takes it (weighted by the lightness: the dark lines keep their own color)
+          el('feColorMatrix', { in: 'SourceGraphic', type: 'matrix', values: '0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.857 1.686 0.314 0 -0.714', result: 'w' }),
+          el('feComposite', { in: 'm', in2: 'w', operator: 'in', result: 'mw' }),
+          el('feComposite', { in: 'mw', in2: 'SourceGraphic', operator: 'over', result: 'o' }),
+          el('feComposite', { in: 'o', in2: 'SourceAlpha', operator: 'in' })),
         el('linearGradient', { id: `${id}-fadeg`, gradientUnits: 'userSpaceOnUse', x1: 0, y1: 0, x2: FADE, y2: 0 },
           el('stop', { offset: 0, 'stop-color': T('flash'), 'stop-opacity': 0 }), el('stop', { offset: 1, 'stop-color': T('flash'), 'stop-opacity': 1 })),
         el('mask', { id: n.fade, maskUnits: 'userSpaceOnUse', x: -20, y: -4000, width: 8000, height: 8000 },
@@ -1191,7 +1205,7 @@
       if (!name) { if (arm.spr) arm.spr.g.style.display = 'none'; return; }
       if (!arm.spr) {
         const img = el('image', { preserveAspectRatio: 'none', mask: `url(#${this.n.fade})` });
-        arm.spr = { g: g({ class: 'rig-hand-spr' }, img), img, name: null };
+        arm.spr = { g: g({ class: 'rig-hand-spr', filter: this.n.handTint ? `url(#${this.n.handTint})` : null }, img), img, name: null };
         arm.hand.append(arm.spr.g);
       }
       const s = arm.spr;

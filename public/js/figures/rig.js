@@ -27,7 +27,7 @@
   // Big RPS hands: fn(k, shape, rig) truthy for an arm that plays its gesture -> the hand sprites of the gesture
   // (hand-human-<gesture>-<back|palm>), drawn at scale (character units per sprite px). face(k) -> [side, mirror]:
   // which side of the hand shows (the RPS scene's FACE); without it the near arm shows the back, the far arm the palm.
-  proto.bigHands = function (fn, { scale = 0.36, face = null } = {}) {
+  proto.bigHands = function (fn, { scale = 0.27, face = null } = {}) {
     return this.handSprites(fn ? (k, shape, rig) => {
       const got = fn(k, shape, rig);
       if (!got) return null;

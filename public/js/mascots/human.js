@@ -246,12 +246,11 @@
   }
   // The head turn: the face and the ears (turnHead above), then the hair for the quantized turn (mirrored when the
   // head turns left).
-  // The hair: the kit's traced hairstyles (hair-art.js, tools/import-hair.js) per view, drawn twice: whole BEHIND the
-  // head (long hair, volume, a bun or a ponytail) and clipped to the head's ellipse OVER the face (the cap, the
-  // fringe); the hair in the player's hair color, the ties in the hair-tie token, the lines in the outline. The view
+  // The hair: the kit's traced hairstyles (hair-art.js, tools/import-hair.js) per view, drawn whole OVER the head as
+  // the kit draws it (its own outline covers the head's, so no head line shows through the hair); the hair in the
+  // player's hair color, the ties in the hair-tie token, the lines in the outline. The view
   // follows the turn as the hats and shoes do (front, 3/4, profile, back), mirrored for a turn to the left. Without
   // the traced art, the code-drawn styles above.
-  let clipN = 0;
   const VIEW = (a, back) => (back ? 'back' : a < 0.28 ? 'front' : a < 0.8 ? 'three' : 'side');
   function hairArt(hp, style, v) {
     const art = window.DuelHairArt?.[style]?.[v];
@@ -259,9 +258,7 @@
     const { h, c } = hp;
     const layers = () => [[art.hair, c.hair], [art.tie, T('hair-tie')], [art.ink, T('outline')]]
       .filter(([d]) => d).map(([d, fill]) => h.el('path', { d, fill, 'fill-rule': 'evenodd' }));
-    const id = `hh-${++clipN}`;
-    hp.hairBack.append(...layers());
-    hp.hairFront.append(h.el('clipPath', { id }, h.el('ellipse', { cx: 0, cy: 0, rx: R - 1, ry: R * 1.02 - 1 })), h.g({ 'clip-path': `url(#${id})` }, ...layers()));
+    hp.hairFront.append(...layers());
     return true;
   }
   function turnHuman(hp, turn, back) {
@@ -281,14 +278,17 @@
     hp.hairBack.setAttribute('transform', m); hp.hairFront.setAttribute('transform', m);
   }
   const HS = () => window.DuelFigureArt?.hands || {};
+  const ARM_HALF = 7.8;   // the wrist's half-width (the arm's 7.5 and a hair, so the hand flares out of it)
   const SHAPE_OF = { ball: 'ready', fist: 'grip', ready: 'ready', rock: 'rock', paper: 'paper', open: 'open', scissors: 'scissors', point: 'scissors', glove: 'glove' };
   const traced = (shape) => (c, h) => {
     const s = HS()[SHAPE_OF[shape]];
     if (!s) return h.blob([h.circle(0, -14, 15)], c.fur);
     const fill = (cls) => ({ skin: c.skin, glove: T('glove'), band: T('glove-band') }[cls] || c.skin);
-    return h.g({},
+    // (scaled so the wrist is as wide as the arm (armW 15): the traced wrist is s.wi; the keeper's gloves stay big)
+    const k = shape === 'glove' ? 1 : Math.round(ARM_HALF / s.wi * 1000) / 1000;
+    return h.g({ transform: k === 1 ? null : `scale(${k})` },
       h.el('path', { d: s.s, fill: T('outline'), 'fill-rule': 'evenodd' }),
-      h.el('path', { d: s.open, fill: 'none', stroke: T('outline'), 'stroke-width': f1(h.w || 4), 'stroke-linejoin': 'round', 'stroke-linecap': 'butt' }),
+      h.el('path', { d: s.open, fill: 'none', stroke: T('outline'), 'stroke-width': f1((h.w || 4) / k), 'stroke-linejoin': 'round', 'stroke-linecap': 'butt' }),
       ...s.f.map(([cls, d]) => h.el('path', { d, fill: fill(cls), 'fill-rule': 'evenodd' })),
       h.el('rect', { x: f1(-s.wi + 0.4), y: -4, width: f1(s.wi * 2 - 0.8), height: 6.5, fill: shape === 'glove' ? c.skin : c.skin }));
   };
@@ -305,6 +305,7 @@
     lookKey: (l) => [l.skin, l.hair, l.hairColor, l.shirt].join(':'),
     skel: SKEL,
     armW: 15, legW: 15, foot: [27, 13],
+    handSkin: [0xD4, 0x9A, 0x6E],   // the hand sheet's skin (the RPS hand sprites, recolored to the player's skin by the rig)
     tail: null,
     avatarBox: 104,
     head: headWithNeck, turnHead: turnHuman,

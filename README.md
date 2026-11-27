@@ -50,8 +50,9 @@ Every game has an interactive tutorial that runs the real scene and the real rul
   how it poses, dresses and animates a character (noodle limbs as cubic Béziers, poses as data, tweened with easing,
   idle breathing and blinking, the same shoulders, sleeves, hands, shoes and outfits), with a human species drawn in
   code (`public/js/mascots/human.js`: a big round head, ears that follow the head turn, 10 expressions).
-  The RPS hands are sprites cut from a drawn sheet (`tools/hand-sprites.js`), the other hands and the shoes are traced
-  into SVG paths (`tools/trace-figures.js`). The clothes and hairstyles come from a ChatGPT kit in the original game's format
+  The RPS hands are sprites cut from a drawn sheet (`tools/hand-sprites.js`) and tinted to the player's skin by an SVG
+  filter, the other hands and the shoes are traced into SVG paths (`tools/trace-figures.js`); a long sleeve rolls up on
+  the arm that plays, as in the original game. The clothes and hairstyles come from a ChatGPT kit in the original game's format
   (`art-source/human-kit/`, `tools/human-kit.js`, references rendered by `tools/kit-renders.js`), imported the way
   the original game imported its cosmetics: 20 outfits traced into vector textures for the body (`tools/import-kit.js`,
   `tools/outfit-vector.js`), 10 pairs of shoes and 5 hats as sprites with their anchors and collars

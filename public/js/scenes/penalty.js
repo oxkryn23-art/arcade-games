@@ -136,7 +136,8 @@
     const a = -r * D2R, dx = pt[0] - end[0], dy = pt[1] - end[1];
     return [Math.round((dx * Math.cos(a) - dy * Math.sin(a)) * 10) / 10, Math.round((dx * Math.sin(a) + dy * Math.cos(a)) * 10) / 10, 0];
   };
-  const GLOVES = { h1: 'glove', h2: 'glove' };   // every keeper pose wears the gloves
+  // every keeper pose wears the gloves; the keeper's arms both play: its long sleeves rolled up (rig.js roll1 / roll2)
+  const GLOVES = { h1: 'glove', h2: 'glove', roll1: 1, roll2: 1 };
   const OVER = { ...GLOVES, a1: [-66, -346, -1.1], a2: [66, -346, 1.1], r1: -84, r2: -96, exact1: 1, exact2: 1 };
   OVER.p1 = propAt(OVER.a1, OVER.r1, BALL_AT);
   OVER.p2 = propAt(OVER.a2, OVER.r2, BALL_AT);
@@ -197,6 +198,8 @@
     shrug: { a1: [-86, -150, -0.6], a2: [86, -150, 0.6], h1: 'open', h2: 'open', hy: 4, hrot: -6 },
   };
   KK.hop = { ...KK.cheer, y: -42, shadow: 0.7 };
+  // (the kicker plays with its foot: both long sleeves stay down, rig.js roll1 / roll2 = 0)
+  for (const p of Object.values(KK)) p.roll1 = p.roll2 = 0;
 
   // A pose's point in scene coordinates (the rig's world(), for a pose that is not applied yet).
   function worldOf(pose, at, pt) {

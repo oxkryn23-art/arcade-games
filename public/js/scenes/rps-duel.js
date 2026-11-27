@@ -21,7 +21,7 @@
   // hand = the gesture hands' size (rig.bigHands scale).
   const STAGE = {
     seat: { you: [460, 593, 1.32], opp: [1140, 593, 1.32] }, flip: { you: false, opp: true },
-    view: { you: { turn: 0.6 }, opp: { turn: 0.6 } }, arm: { you: 2, opp: 2 }, hand: 0.36,
+    view: { you: { turn: 0.6 }, opp: { turn: 0.6 } }, arm: { you: 2, opp: 2 }, hand: 0.27,
     plus: { you: [460, 205], opp: [1140, 205] }, punch: [800, 300], glow: { you: [460, 470], opp: [1140, 470] },
   };
   const GEST = { ready: true, rock: true, paper: true, scissors: true };
@@ -62,6 +62,8 @@
   // RPS poses for one side. The gesture poses are functions of the gesture (the READY fist when none).
   function poses(side = 'you') {
     const t = STAGE.arm[side], B = bodyOf(side);
+    // the throwing arm plays: its long sleeve rolled up (rig.js roll1 / roll2) in every pose of the match
+    B.base = { ...B.base, [`roll${t}`]: 1 };
     const arm = (key, gest, extra = {}) => {
       const [a, r, hs] = handAt(key);
       return { ...B.base, ...B.free, [`a${t}`]: a, [`r${t}`]: r, [`hs${t}`]: hs, [`h${t}`]: gest || 'ready', [`over${t}`]: 1, ...extra };
@@ -106,6 +108,8 @@
   }
   function poses2(side = 'you') {
     const B = bodyOf(side);
+    // both arms play: both long sleeves rolled up (rig.js roll1 / roll2)
+    B.base = { ...B.base, roll1: 1, roll2: 1 };
     const SA = SLOTS;
     const both = (key, pair, extra = {}) => {
       const hs = two(key), o = { ...B.base };

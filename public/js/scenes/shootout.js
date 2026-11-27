@@ -83,7 +83,10 @@
   const FENCE_TOP = (x) => -68 - (x + 44) * 0.13 - SINK;
   // The revolver's grip sits in the fist (the prop's origin is the grip top; the fist is ~14 along the hand).
   const GRIP = [14, -12, 0];
-  const FRONT = { turn: 0.5, ht: 0.25, lx: 1, ...LEGS };   // three-quarters toward the other duelist, eyes on them
+  // three-quarters toward the other duelist, eyes on them. (The gun arm a2 plays in every pose: its long sleeve rolled
+  // up, rig.js roll2; the near arm keeps the full sleeve, also in the two-handed reload / shotgun grips, so no sleeve
+  // rolls up and down during a reveal.)
+  const FRONT = { turn: 0.5, ht: 0.25, lx: 1, ...LEGS, roll2: 1 };
   const FREE = { a1: [-46, FENCE_TOP(-46) - 11, 0.08], h1: 'fist', r1: 84 };   // the near hand on the fence top
   // The level gun hand: [x from the body center, y from the neck]; AIM_R = the revolver's level angle.
   const ARM = [134, -22], AIM_R = -3;
@@ -103,6 +106,7 @@
     fallDown: { turn: 0.55, rot: -91, x: 128, y: 16 - SINK, shadow: 1.25, hrot: -10, a1: [-70, -210, -0.5], h1: 'open', a2: [104, -214, 0.1], h2: 'open', l1: [92, -84, 0.4], l2: [128, -40, 0.3] },
     fallRest: { turn: 0.55, rot: -87, x: 126, y: 20 - SINK, shadow: 1.25, hrot: -6, a1: [-66, -206, -0.5], h1: 'open', a2: [100, -208, 0.1], h2: 'open', l1: [82, -76, 0.4], l2: [118, -34, 0.3] },
   };
+  for (const p of Object.values(P)) p.roll2 = 1;
 
   // The computed poses (a = the aim angle in the rig's frame, deg, 0 = level at the enemy, negative = up). Gun geometry
   // from the props (props.js), read once.
@@ -127,7 +131,7 @@
   const pumpHand = (a2, r2) => add(a2, rotV([geo().GUN.pump[0] + SG_GRIP[0], geo().GUN.pump[1] + SG_GRIP[1] + 8], r2));
   function shotgunAt(a, base = {}) {
     const at = SG_AT, pump = pumpHand(at, a);
-    return { turn: 0.55, ht: 0.2, l1: [-30, -10, 0.1], l2: [34, -10, -0.2], a2: [at[0], at[1], -0.1], h2: 'fist', r2: a, p2: SG_GRIP, a1: [Math.round(pump[0]), Math.round(pump[1]), 0.15], h1: 'fist', r1: a - 70, exact1: 1, lx: 1, ...base };
+    return { turn: 0.55, ht: 0.2, roll2: 1, l1: [-30, -10, 0.1], l2: [34, -10, -0.2], a2: [at[0], at[1], -0.1], h2: 'fist', r2: a, p2: SG_GRIP, a1: [Math.round(pump[0]), Math.round(pump[1]), 0.15], h1: 'fist', r1: a - 70, exact1: 1, lx: 1, ...base };
   }
   // the blast's recoil: kicked up and back
   function blastKick(pose) {
@@ -143,7 +147,7 @@
     const cyl = add(a2, rotV(add(REV.cylOut, GRIP), RELOAD_R2));
     const bulletHand = (dy) => [Math.round(cyl[0] + 4), Math.round(cyl[1] - 34 + dy)];
     const near = (dx, dy) => [Math.round(cyl[0] + dx), Math.round(cyl[1] + dy)];
-    const base = { turn: 0.55, ht: 0.1, ...LEGS, p2: GRIP, a2: [...a2, 0.1], h2: 'fist', r2: RELOAD_R2, h1: 'fist', r1: 90, p1: [0, -26, 90], exact1: 1, hrot: 8, hy: 4, by: 4, lx: 0.5, ly: 0.9 };
+    const base = { turn: 0.55, ht: 0.1, ...LEGS, roll2: 1, p2: GRIP, a2: [...a2, 0.1], h2: 'fist', r2: RELOAD_R2, h1: 'fist', r1: 90, p1: [0, -26, 90], exact1: 1, hrot: 8, hy: 4, by: 4, lx: 0.5, ly: 0.9 };
     return {
       open: { ...base, a1: [...near(-46, -26), 0.2] },
       bring: { ...base, a1: [...bulletHand(-10), 0.2] },

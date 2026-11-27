@@ -14,8 +14,7 @@
 //      outline; not the face's lines), holes closed; traced like the outfits (tools/outfit-vector.js: a light blur, a
 //      Catmull-Rom upsample, marching squares, smoothed and simplified loops) into three stacked layers (hair, tie,
 //      ink) and moved into head space.
-// The rig (human.js) draws it twice: whole BEHIND the head (long hair, volume, buns) and clipped to the head's
-// ellipse OVER the face (the cap, the fringe). Contact sheet: art-source/human-kit/contact/hair.png.
+// The rig (human.js) draws it whole OVER the head, as the kit's drawing has it (its own outline covers the head's). Contact sheet: art-source/human-kit/contact/hair.png.
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
@@ -99,17 +98,26 @@ function fit(k, w, h, fixedS) {
 // 3. the hair masks
 function hairMasks(k, w, h) {
   const hair = new Uint8Array(w * h), tie = new Uint8Array(w * h), ink = new Uint8Array(w * h);
-  // ties: cream components that touch hair (eye whites never do)
-  const seen = new Uint8Array(w * h);
+  // ties: cream components ringed by more hair than skin (across their outline: up to TIE_REACH px away); the eye
+  // whites are ringed by the skin
+  const seen = new Uint8Array(w * h), TIE_REACH = 9;
   for (let i = 0; i < w * h; i++) {
     if (k[i] !== 2 || seen[i]) continue;
-    const st = [i], mem = [i]; seen[i] = 1; let touch = false;
+    const st = [i], mem = [i]; seen[i] = 1;
     while (st.length) {
-      const j = st.pop(), x = j % w, y = (j / w) | 0;
-      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < w && Y < h && k[Y * w + X] === 1) touch = true; }
+      const j = st.pop();
       for (const q of [j - 1, j + 1, j - w, j + w]) if (q >= 0 && q < w * h && !seen[q] && k[q] === 2) { seen[q] = 1; st.push(q); mem.push(q); }
     }
-    if (touch && mem.length > 20) for (const j of mem) tie[j] = 1;
+    if (mem.length <= 20) continue;
+    let nh = 0, ns = 0;
+    for (const j of mem) {
+      const x = j % w, y = (j / w) | 0;
+      for (const [dx, dy] of [[TIE_REACH, 0], [-TIE_REACH, 0], [0, TIE_REACH], [0, -TIE_REACH]]) {
+        const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue;
+        const c = k[Y * w + X]; if (c === 1) nh++; else if (c === 3) ns++;
+      }
+    }
+    if (nh > ns) for (const j of mem) tie[j] = 1;
   }
   for (let i = 0; i < w * h; i++) if (k[i] === 1) hair[i] = 1;
   // ink: 8-connected ink components; their pixels within INK_REACH of hair / tie, when the component touches them
