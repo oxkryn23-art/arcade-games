@@ -208,7 +208,8 @@
   };
   const NECK_W = 30;
   // The neck (head space): drawn by the rig BEHIND the body and the garment (skin.neck), from under the chin down past
-  // the body's top, so it goes into the collar; the rig hides the body's top outline across it (skin.neckW).
+  // the body's top, so it goes into the collar; the rig hides the body's top outline across it (skin.neckW) and, with a
+  // garment on, puts a collar band over the neck's base.
   function neck(c, h) {
     const x = NECK_W / 2, y0 = f1(R * 0.55), y1 = SKEL.headUp + 24;
     return h.g({ class: 'rig-neck' },

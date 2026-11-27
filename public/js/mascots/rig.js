@@ -582,6 +582,9 @@
         n.neckClipTop = el('path', {});
         n.neck.append(el('defs', {}, el('clipPath', { id: `${id}-neckclip` }, n.neckClipBody, n.neckClipTop)), n.neckTr);
         n.neck.setAttribute('clip-path', `url(#${id}-neckclip)`);
+        // the collar band over the neck's base, on top of the garment (set in apply, colored in dressOutfit)
+        n.neckBand = el('path', { class: 'rig-neck-band', ...ink });
+        n.body.append(n.neckBand);
       }
       n.faces = {};
       for (const [name, mk] of Object.entries(sk.faces)) {
@@ -816,6 +819,13 @@
       this.outfitClip = !!(res?.node && res.clip);
       if (this.outfitClip) n.outfit.setAttribute("clip-path", `url(#rig${this.id}-body)`); else n.outfit.removeAttribute('clip-path');
       this.outfitOn = !!res?.node;
+      // a species with a neck: the garment's neck opening shows the body, so the body takes the garment's color (no
+      // skin under the collar band), and the band takes its trim color
+      if (this.skin.neck) {
+        const main = item === 'tee' ? this.c.shirt : `var(--outfit-${item})`;
+        n.bodyPath.style.fill = this.outfitOn ? main : '';
+        if (n.neckBand) n.neckBand.style.fill = item === 'tee' ? this.c.shirt : `var(--outfit-${item}-cuff, ${main})`;
+      }
       return this.outfitOn;
     }
 
@@ -984,14 +994,20 @@
         n.neckClipBody.setAttribute('d', body);
         n.neckClipTop.setAttribute('d', `M-4000 -4000H4000V${S.neck - S.hip}H-4000Z`);
         // the gap = the neck column itself (head space -> body space), so it turns and tilts with the neck and the
-        // body never shows a hole beside a tilted neck; it reaches 10 units under the body's top
+        // body never shows a hole beside a tilted neck. With a garment on, it ends under the collar band (n.neckBand,
+        // over the garment, in its trim color: the neck goes into the shirt there) and the garment's neck opening
+        // below it shows the body in the garment's color (dressOutfit); bare, it reaches 10 units under the body's top.
         const hr = (p.brot + p.hrot) * D2R, hc = Math.cos(hr), hs = Math.sin(hr), hw = sk.neckW / 2;
         const toBody = ([u, v]) => {
           const dx = neck[0] + p.hx + u * hc - v * hs - p.bx, dy = neck[1] + p.hy + u * hs + v * hc - (S.hip + p.by);
           return [dx * ca + dy * sa, (-dx * sa + dy * ca) / p.bsy];
         };
-        const q = [[-hw, -60], [hw, -60], [hw, 10], [-hw, 10]].map(toBody);
+        const P = (uv) => toBody(uv).map(f1).join(' ');
+        const dressed = !!outfit, gb = dressed ? 4 : 10;
+        const q = [[-hw, -60], [hw, -60], [hw, gb], [-hw, gb]].map(toBody);
         n.neckGap.setAttribute('d', `M-4000 -4000H4000V4000H-4000ZM${q.map(([x, y]) => `${f1(x)} ${f1(y)}`).join('L')}Z`);
+        n.neckBand.style.display = dressed ? '' : 'none';
+        if (dressed) n.neckBand.setAttribute('d', `M${P([-hw - 5, -3])}Q${P([0, 2])} ${P([hw + 5, -3])}L${P([hw + 5, 5])}Q${P([0, 12])} ${P([-hw - 5, 5])}Z`);
       }
       this.skin.turnHead(n.hp, clamp(turn + p.ht, -1, 1), back, { el });
       const f = n.faces[this.faceName];

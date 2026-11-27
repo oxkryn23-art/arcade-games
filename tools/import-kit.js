@@ -19,6 +19,8 @@ const path = require('path');
 const sharp = require('sharp');
 const { key, trimBox, crop } = require('./kit-lib');
 const OV = require('./outfit-vector');
+const NECKS = require('./outfit-necks');
+const THEME = require('../server/themes');
 
 const ROOT = path.join(__dirname, '..');
 const SRC = path.join(ROOT, 'art-source', 'human-kit', 'output');
@@ -658,6 +660,8 @@ async function run(sprites = {}) {
           // the published size (the logical size in sprites.json: the SVG's viewBox, the rig stretches it anyway)
           const W = Math.max(1, Math.round(c.w * k)), H = Math.max(1, Math.round(c.h * k));
           const t = OV.vectorTexture(c, pal, neckMask(c, id, VIEWS[vi]), W, H, { outlineWidth, edgeDist, spans, eggHalf, rowFill, neckOutline });
+          // the mannequin's skin at the neck in the garment's color (the collar band ends the neck there)
+          t.svg = NECKS.recolor(t.svg, String((THEME.ALL || THEME.LIGHT || THEME)[`outfit-${id}`] || '').toLowerCase()).svg;
           fs.writeFileSync(path.join(OUT, `${name}.svg`), t.svg);
           sprites[name] = { w: W, h: H, ...(t.neck ? { neck: t.neck } : {}) };
           (table.outfit[id] = table.outfit[id] || {})[VIEWS[vi]] = t.neck ? [W, H, t.neck] : [W, H];
