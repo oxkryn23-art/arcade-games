@@ -26,10 +26,10 @@ const SHEETS = {
   'people/head-shapes': { rows: [VIEWS.map((v) => ({ look: { hair: 'bald', outfit: 'none' }, pose: v, part: 'head' }))] },
   'people/feet-shapes': { rows: [VIEWS.map((v) => ({ look: { hair: 'bald', outfit: 'none' }, pose: v, part: 'legs' }))] },
   'current/outfits': { rows: ['shirt-1', 'shirt-2', 'shirt-4'].map((shirt) => VIEWS.map((v) => ({ look: { hair: 'short', shirt }, pose: v }))) },
-  'current/hair': { rows: [['short', 'crop', 'buzz', 'spiky'], ['curly', 'long', 'bun', 'ponytail']].flatMap((styles) => styles.map((hair) => VIEWS.map((v) => ({ look: { hair, outfit: 'none' }, pose: v, part: 'head' })))) },
+  'current/hair': { rows: [['short', 'crop', 'buzz', 'spiky'], ['curly', 'bun']].flatMap((styles) => styles.map((hair) => VIEWS.map((v) => ({ look: { hair, outfit: 'none' }, pose: v, part: 'head' })))) },
   'current/people': {
     rows: [
-      { skin: 'skin-1', hair: 'long', hairColor: 'hair-4', shirt: 'shirt-1' },
+      { skin: 'skin-1', hair: 'bun', hairColor: 'hair-4', shirt: 'shirt-1' },
       { skin: 'skin-3', hair: 'short', hairColor: 'hair-2', shirt: 'shirt-2' },
       { skin: 'skin-4', hair: 'curly', hairColor: 'hair-1', shirt: 'shirt-6' },
       { skin: 'skin-5', hair: 'bun', hairColor: 'hair-1', shirt: 'shirt-4' },

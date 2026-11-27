@@ -572,7 +572,17 @@
       n.head.append(n.headInner);
       n.hp = sk.head(c, { id, el, g, blob, ink, T, circle, ellipse, pathS, rrect });   // { back, shape, face, front, R }
       n.neckInner = sk.neck ? sk.neck(c, { id, el, g, blob, ink, T, circle, ellipse, pathS, rrect }) : null;
-      if (n.neckInner) n.neck.append(n.neckInner);
+      if (n.neckInner) {
+        // The neck follows the head (n.neckTr) but is clipped in body space to the body plus everything above the
+        // body's top (n.neckClip*, set in apply), so a turned or tilted head never shows the neck's lower end sticking
+        // out beside the body.
+        n.neckTr = g({});
+        n.neckTr.append(n.neckInner);
+        n.neckClipBody = el('path', {});
+        n.neckClipTop = el('path', {});
+        n.neck.append(el('defs', {}, el('clipPath', { id: `${id}-neckclip` }, n.neckClipBody, n.neckClipTop)), n.neckTr);
+        n.neck.setAttribute('clip-path', `url(#${id}-neckclip)`);
+      }
       n.faces = {};
       for (const [name, mk] of Object.entries(sk.faces)) {
         const f = mk(c, { el, g, blob, ink, T, circle, ellipse, pathS, R: n.hp.R });
@@ -968,11 +978,20 @@
       n.head.setAttribute('transform', `translate(${f1(neck[0] + p.hx)} ${f1(neck[1] + p.hy)}) rotate(${f1(p.brot + p.hrot)})`);
       n.headInner.setAttribute('transform', `translate(0 ${-S.headUp})`);
       if (n.neckInner) {
-        n.neck.setAttribute('transform', n.head.getAttribute('transform'));
+        n.neckTr.setAttribute('transform', n.head.getAttribute('transform'));
         n.neckInner.setAttribute('transform', `translate(0 ${-S.headUp})`);
-        const nx = lerp(0, S.headSide, turn) + p.hx, hw = sk.neckW / 2;
-        const y0 = S.neck - S.hip - 40, y1 = S.neck - S.hip + 10;
-        n.neckGap.setAttribute('d', `M-4000 -4000H4000V4000H-4000ZM${f1(nx - hw)} ${y0}H${f1(nx + hw)}V${y1}H${f1(nx - hw)}Z`);
+        for (const q of [n.neckClipBody, n.neckClipTop]) q.setAttribute('transform', bodyT);
+        n.neckClipBody.setAttribute('d', body);
+        n.neckClipTop.setAttribute('d', `M-4000 -4000H4000V${S.neck - S.hip}H-4000Z`);
+        // the gap = the neck column itself (head space -> body space), so it turns and tilts with the neck and the
+        // body never shows a hole beside a tilted neck; it reaches 10 units under the body's top
+        const hr = (p.brot + p.hrot) * D2R, hc = Math.cos(hr), hs = Math.sin(hr), hw = sk.neckW / 2;
+        const toBody = ([u, v]) => {
+          const dx = neck[0] + p.hx + u * hc - v * hs - p.bx, dy = neck[1] + p.hy + u * hs + v * hc - (S.hip + p.by);
+          return [dx * ca + dy * sa, (-dx * sa + dy * ca) / p.bsy];
+        };
+        const q = [[-hw, -60], [hw, -60], [hw, 10], [-hw, 10]].map(toBody);
+        n.neckGap.setAttribute('d', `M-4000 -4000H4000V4000H-4000ZM${q.map(([x, y]) => `${f1(x)} ${f1(y)}`).join('L')}Z`);
       }
       this.skin.turnHead(n.hp, clamp(turn + p.ht, -1, 1), back, { el });
       const f = n.faces[this.faceName];

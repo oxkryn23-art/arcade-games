@@ -7,17 +7,17 @@
 (function () {
   const OPTIONS = {
     skin: ['skin-1', 'skin-2', 'skin-3', 'skin-4', 'skin-5'],
-    hair: ['short', 'crop', 'curly', 'long', 'bun', 'ponytail', 'spiky', 'buzz'],
+    hair: ['short', 'crop', 'curly', 'bun', 'spiky', 'buzz'],   // (no long hair or ponytail: the owner dropped them)
     hairColor: ['hair-1', 'hair-2', 'hair-3', 'hair-4', 'hair-5', 'hair-6'],
     shirt: ['shirt-1', 'shirt-2', 'shirt-3', 'shirt-4', 'shirt-5', 'shirt-6', 'shirt-7', 'shirt-8'],
     // the clothes (the human clothes kit, mascots/cosmetics.js ITEMS: the same ids in the same order)
     hat: ['none'],   // (no hats: the owner dropped them)
     outfit: ['tee', 'stripedtee', 'polo', 'jersey', 'aloha', 'ringer', 'hoodie', 'denim', 'sweater', 'flannel', 'tracktop', 'bomber', 'leather', 'puffer', 'raincoat', 'blazer', 'overalls', 'mechanic', 'pajamas', 'tracksuit', 'western'],
-    feet: ['natural', 'sneakers', 'hightops', 'loafers', 'chelsea', 'runners', 'cleats', 'cowboyboots', 'rainboots', 'slippers', 'skate'],
+    feet: ['natural', 'sneakers', 'hightops', 'loafers', 'chelsea', 'runners', 'cleats', 'rainboots', 'slippers', 'skate'],
   };
   const LABELS = {
     skin: 'Skin tone', hair: 'Hairstyle', hairColor: 'Hair color', shirt: 'Shirt color', hat: 'Hat', outfit: 'Outfit', feet: 'Shoes',
-    short: 'Short', crop: 'Crop', curly: 'Curly', long: 'Long', bun: 'Bun', ponytail: 'Ponytail', spiky: 'Spiky', buzz: 'Buzz',
+    short: 'Short', crop: 'Crop', curly: 'Curly', bun: 'Bun', spiky: 'Spiky', buzz: 'Buzz',
   };
   const DEFAULT = { skin: 'skin-3', hair: 'short', hairColor: 'hair-2', shirt: 'shirt-1', hat: 'none', outfit: 'tee', feet: 'natural' };
   const KEY = 'duel_avatar';

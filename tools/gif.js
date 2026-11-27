@@ -30,7 +30,7 @@ const CLIPS = [
         for (const [k, v] of ${JSON.stringify(c.ctx)}) { const el = $('#ctxBox select[name=' + k + ']'); el.value = v; el.dispatchEvent(new Event('change')); await wait(150); }
         $('#controls').style.display = 'none';
         DuelAvatar.set({ skin: 'skin-2', hair: 'short', hairColor: 'hair-2', shirt: 'shirt-1', hat: 'none', outfit: 'stripedtee', feet: 'sneakers' });
-        DuelAvatar.setOpponent({ skin: 'skin-4', hair: 'ponytail', hairColor: 'hair-5', shirt: 'shirt-2', hat: 'none', outfit: 'bomber', feet: 'hightops' });
+        DuelAvatar.setOpponent({ skin: 'skin-4', hair: 'bun', hairColor: 'hair-5', shirt: 'shirt-2', hat: 'none', outfit: 'bomber', feet: 'hightops' });
         lab.mount(); await wait(2700);
         return true;
       })()`);

@@ -121,9 +121,9 @@
   }
 
   // ---------------- hair ----------------
-  // Two layers: behind the head (long hair, a bun, a ponytail) and in front (the cap over the top of the head with its
+  // Two layers: behind the head (a bun) and in front (the cap over the top of the head with its
   // fringe). From behind the hair covers the whole back of the head down to the nape.
-  const HAIR = { short: 'Short', crop: 'Crop', buzz: 'Buzz', spiky: 'Spiky', curly: 'Curly', long: 'Long', bun: 'Bun', ponytail: 'Ponytail' };
+  const HAIR = { short: 'Short', crop: 'Crop', buzz: 'Buzz', spiky: 'Spiky', curly: 'Curly', bun: 'Bun' };
   function hair(style, turn, back, c, h) {
     const sg = turn < 0 ? -1 : 1, a = Math.abs(turn), cx = back ? 0 : turn * R * 0.42;
     const fill = { fill: c.hair, ...h.ink };
@@ -184,38 +184,12 @@
         front.push(h.blob(balls, c.hair, 3));
         break;
       }
-      case 'long': {
-        // the hair falls behind the head to the shoulders, its ends in soft waves; in front a side-parted fringe and a
-        // lock down over each ear (the face side's lock thins out in a turned view)
-        const wave = (x0, x1, y) => { let d = ''; const n = 4; for (let q = 1; q <= n; q++) { const xa = x0 + ((x1 - x0) * (q - 0.5)) / n, xb = x0 + ((x1 - x0) * q) / n; d += `Q${f1(xa)} ${f1(y + 12)} ${f1(xb)} ${f1(y)}`; } return d; };
-        behind.push(h.el('path', { d: `M${-R - 8} ${f1(-R * 0.3)}C${-R - 14} ${f1(R * 0.6)} ${-R - 10} ${f1(R * 0.95)} ${-R - 4} ${f1(R * 1.12)}${wave(-R - 4, R + 4, R * 1.12)}C${R + 10} ${f1(R * 0.95)} ${R + 14} ${f1(R * 0.6)} ${R + 8} ${f1(-R * 0.3)}Z`, ...fill }));
-        front.push(cap({ temple: 0.05, tips: [[0.6, -0.2], [0.05, -0.44]], notch: -0.66, lines: [[-0.15, -0.94, 0.32, -0.62]] }));
-        if (back) front.push(h.el('path', { d: `M${f1(-R * 0.92)} ${f1(R * 0.2)}Q0 ${f1(R * 0.45)} ${f1(R * 0.92)} ${f1(R * 0.2)}L${f1(R * 0.96)} ${f1(R * 1.08)}${wave(R * 0.96, -R * 0.96, R * 1.08)}Z`, ...fill }));
-        else {
-          // locks over the ears: from the temple down past the jaw, a rounded tip
-          const lock = (s2, wdt) => h.el('path', { d: `M${f1(s2 * (R + 4))} ${f1(-R * 0.2)}C${f1(s2 * (R + 10))} ${f1(R * 0.4)} ${f1(s2 * (R + 8))} ${f1(R * 0.85)} ${f1(s2 * (R + 2))} ${f1(R * 1.02)}Q${f1(s2 * (R - wdt * 0.5))} ${f1(R * 1.08)} ${f1(s2 * (R - wdt))} ${f1(R * 0.92)}C${f1(s2 * (R - wdt - 2))} ${f1(R * 0.5)} ${f1(s2 * (R - wdt + 4))} ${f1(R * 0.05)} ${f1(s2 * (R - 8))} ${f1(-R * 0.3)}Z`, ...fill });
-          // (a turned head: the hair behind already frames it, no locks)
-          if (a < 0.3) front.push(lock(-1, 20), lock(1, 20));
-        }
-        break;
-      }
-      // a bun or a ponytail sits behind the head from the front and on top of the hair from behind
+      // a bun sits behind the head from the front and on top of the hair from behind
       case 'bun': {
         const bun = h.el('circle', { cx: f1(-cx * 0.4), cy: back ? f1(-R * 0.55) : -R - 14, r: 22, ...fill });
         const up = { temple: -0.2, tips: [[0.45, -0.52], [-0.05, -0.6], [-0.5, -0.52]], notch: -0.7, lines: [[0.45, -0.56, 0.12, -0.92], [-0.05, -0.64, -0.12, -0.95], [-0.5, -0.56, -0.4, -0.88]] };
         if (back) front.push(cap(up), bun);
         else { behind.push(bun); front.push(cap(up)); }
-        break;
-      }
-      case 'ponytail': {
-        const bx = back ? 0 : -turn * R * 0.95, by = back ? -R * 0.25 : -R * 0.35;
-        const tail = back
-          ? h.el('path', { d: `M${f1(bx - 13)} ${f1(by)}Q${f1(bx - 18)} ${f1(by + 50)} ${f1(bx - 4)} ${f1(by + 92)}Q${f1(bx + 18)} ${f1(by + 50)} ${f1(bx + 13)} ${f1(by)}Q${f1(bx)} ${f1(by - 8)} ${f1(bx - 13)} ${f1(by)}Z`, ...fill })
-          : h.el('path', { d: `M${f1(bx - 12)} ${f1(by)}Q${f1(bx - 34 - turn * 20)} ${f1(by + 40)} ${f1(bx - 18 - turn * 30)} ${f1(by + 88)}Q${f1(bx + 4)} ${f1(by + 58)} ${f1(bx + 12)} ${f1(by)}Z`, ...fill });
-        const tie = h.el('ellipse', { cx: f1(bx), cy: f1(by + 2), rx: 9, ry: 6, fill: c.shirt, ...h.ink, 'stroke-width': 3 });
-        const up = { temple: -0.18, tips: [[0.5, -0.46], [0, -0.56], [-0.5, -0.46]], notch: -0.68, lines: [[0.5, -0.5, 0.15, -0.9], [-0.5, -0.5, -0.32, -0.88]] };
-        if (back) front.push(cap(up), tail, tie);
-        else { behind.push(tail); front.push(cap(up)); if (a > 0.3) front.push(tie); }
         break;
       }
       default: front.push(cap(SHORT));   // short

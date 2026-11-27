@@ -26,6 +26,7 @@ const SRC = path.join(ROOT, 'art-source', 'human-kit', 'output');
 const OUT = path.join(ROOT, 'public', 'js', 'mascots', 'hair-art.js');
 const CONTACT = path.join(ROOT, 'art-source', 'human-kit', 'contact', 'hair.png');
 const SHEETS = [['hair-1', ['short', 'crop', 'buzz', 'spiky']], ['hair-2', ['curly', 'long', 'bun', 'ponytail']]];
+const DROPPED = new Set(['long', 'ponytail']);   // (in the sheet, dropped by the owner)
 const VIEWS = ['front', 'three', 'side', 'back'];
 const R = 70, RY = 1.02 * R, NECK_W = 30;
 const HAIR = [0x5A, 0x3A, 0x26], TIE = [0xFB, 0xE4, 0xC6], SKIN = [0xD4, 0x9A, 0x6E];
@@ -255,7 +256,7 @@ else (async () => {
 // [style][view] = { hair, tie, ink } SVG path data in head space (the head's center at 0,0, radius 70, a profile facing
 // right). Generated, do not edit. human.js fills hair with the player's hair color, tie with the hair-tie token and
 // ink with the outline.
-window.DuelHairArt = ${JSON.stringify(art)};
+window.DuelHairArt = ${JSON.stringify(Object.fromEntries(Object.entries(art).filter(([k]) => !DROPPED.has(k))))};
 `;
   fs.writeFileSync(OUT, js);
   // contact sheet: each cell with the fitted head ellipse in magenta

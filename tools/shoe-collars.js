@@ -28,7 +28,7 @@ const VIEWS = ['front', 'three', 'side', 'back'];
 // shows (the leg stays behind the shoe). Missing = the measured lip.
 const DEPTH = {
   sneakers: { back: 0.4 }, hightops: {}, loafers: { three: 0.45, side: 0.35 }, chelsea: { front: 0.3, three: 0.35, side: 0.35, back: 0.3 }, runners: {},
-  cleats: { front: 0.35, three: 0.35, side: 0.35, back: 0.35 }, cowboyboots: { front: 0.35, three: 0.35, side: 0.35, back: 0.35 }, rainboots: {}, slippers: {},
+  cleats: { front: 0.35, three: 0.35, side: 0.35, back: 0.35 }, rainboots: {}, slippers: {},
   skate: { front: 0.4, three: 0.35, side: 0.35 },
 };
 
