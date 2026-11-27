@@ -74,6 +74,6 @@ const CUT = 34;   // px of forearm kept before the hand
       table[name] = { w, h, ax: 0, ay: r1((o0 + o1) / 2 - top), wi: r1((i1 - i0 + 1) / 2), wo: r1((thick + 1) / 2), wa: 0 };
     }
   }
-  fs.writeFileSync(TABLE, `${JSON.stringify(table, null, 1)}\n`);
+  fs.writeFileSync(TABLE, JSON.stringify(table));
   console.log(`wrote ${Object.keys(table).filter((k) => k.startsWith('hand-human')).length} hand sprites to public/art/hands/ and their wrists to public/art/sprites.json`);
 })().catch((e) => { console.error(e); process.exit(1); });
