@@ -39,7 +39,7 @@ const SHEETS = [
   ['outfits-4-full-body', 'outfit', ['overalls', 'mechanic', 'pajamas', 'tracksuit', 'western']],
   ['shoes-1-everyday', 'feet', ['sneakers', 'hightops', 'loafers', 'chelsea', 'runners']],
   ['shoes-2-sport', 'feet', ['cleats', 'cowboyboots', 'rainboots', 'slippers', 'skate']],
-  ['hats-1', 'hat', ['cap', 'beanie', 'bucket', 'cowboy', 'headband']],
+  // (hats-1 is not imported: the owner dropped the hats)
 ];
 const ID_OF = { outfit: {}, feet: {}, hat: {} };
 const CODE_SHOES = new Set();

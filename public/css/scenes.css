@@ -74,7 +74,7 @@
    lock badge and the rest dim, off = waiting (everything flat and faded). On the match screen the panel is an
    overlay at the bottom of the scene (game-ui.css); everywhere else (/dev/scenes) it simply sits under the scene. */
 .scene-controls {
-  --ctl-h: 76px; --ctl-ico: 54px; --ctl-font: 23px;
+  --ctl-h: 76px; --ctl-ico: 60px; --ctl-font: 23px;
   display: grid; justify-items: center; color: var(--ui-ink); font-family: var(--font-display);
 }
 .ctl-chip {

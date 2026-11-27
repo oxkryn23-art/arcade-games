@@ -494,8 +494,8 @@
       // head), but clipped out of the body and its outline, so they still come out from behind the torso (see apply)
       n.armClip = el('path', { 'clip-rule': 'evenodd' });
       n.armMid = g({ class: 'rig-arms-tucked', 'clip-path': `url(#${id}-arms)` });
-      n.legs = g({}); n.body = g({}); n.head = g({}); n.top = g({});
-      n.all.append(el('defs', {}, el('clipPath', { id: `${id}-arms` }, n.armClip)), n.tailBack, n.armBack, n.legs, n.body, n.tailFront, n.head, n.armMid, n.armFront, n.top);
+      n.legs = g({}); n.neck = g({ class: 'rig-neck-host' }); n.body = g({}); n.head = g({}); n.top = g({});
+      n.all.append(el('defs', {}, el('clipPath', { id: `${id}-arms` }, n.armClip)), n.tailBack, n.armBack, n.legs, n.neck, n.body, n.tailFront, n.head, n.armMid, n.armFront, n.top);
       n.flip.append(n.shadow, n.all);
       this.root.append(n.flip);
 
@@ -557,13 +557,22 @@
       n.outfit = g({ class: 'rig-outfit' });
       n.bodyEdge = el('path', { fill: 'none', ...ink, class: 'rig-body-edge' });
       n.outfitTop = g({ class: 'rig-outfit-top' });
-      n.body.append(el('defs', {}, n.clip), n.bodyPath, n.marks, n.bodyLine, n.outfit, n.bodyEdge, n.outfitTop);
+      // a species with a neck (skin.neck: drawn behind the body, it goes into the collar): the body's fill and outline
+      // are left out across the neck's width at the top (neckGap, body space; set in apply), so the neck runs on into
+      // the garment's neck opening with no line across it
+      // (the mask: everything but the gap, one even-odd path)
+      n.neckGap = sk.neck ? el('path', { d: '', fill: T('flash'), 'fill-rule': 'evenodd' }) : null;
+      const neckMask = sk.neck ? el('mask', { id: `${id}-neckgap`, maskUnits: 'userSpaceOnUse', x: -4000, y: -4000, width: 8000, height: 8000 }, n.neckGap) : null;
+      if (neckMask) for (const q of [n.bodyPath, n.bodyEdge]) q.setAttribute('mask', `url(#${id}-neckgap)`);
+      n.body.append(el('defs', {}, n.clip, neckMask), n.bodyPath, n.marks, n.bodyLine, n.outfit, n.bodyEdge, n.outfitTop);
       this.outfitKey = null;
 
       // head: species parts (ears behind / head / face / ears on top), expression layer, hat
       n.headInner = g({});
       n.head.append(n.headInner);
       n.hp = sk.head(c, { id, el, g, blob, ink, T, circle, ellipse, pathS, rrect });   // { back, shape, face, front, R }
+      n.neckInner = sk.neck ? sk.neck(c, { id, el, g, blob, ink, T, circle, ellipse, pathS, rrect }) : null;
+      if (n.neckInner) n.neck.append(n.neckInner);
       n.faces = {};
       for (const [name, mk] of Object.entries(sk.faces)) {
         const f = mk(c, { el, g, blob, ink, T, circle, ellipse, pathS, R: n.hp.R });
@@ -958,6 +967,13 @@
       const neck = B([lerp(0, S.headSide, turn), S.neck - S.hip]);
       n.head.setAttribute('transform', `translate(${f1(neck[0] + p.hx)} ${f1(neck[1] + p.hy)}) rotate(${f1(p.brot + p.hrot)})`);
       n.headInner.setAttribute('transform', `translate(0 ${-S.headUp})`);
+      if (n.neckInner) {
+        n.neck.setAttribute('transform', n.head.getAttribute('transform'));
+        n.neckInner.setAttribute('transform', `translate(0 ${-S.headUp})`);
+        const nx = lerp(0, S.headSide, turn) + p.hx, hw = sk.neckW / 2;
+        const y0 = S.neck - S.hip - 40, y1 = S.neck - S.hip + 10;
+        n.neckGap.setAttribute('d', `M-4000 -4000H4000V4000H-4000ZM${f1(nx - hw)} ${y0}H${f1(nx + hw)}V${y1}H${f1(nx - hw)}Z`);
+      }
       this.skin.turnHead(n.hp, clamp(turn + p.ht, -1, 1), back, { el });
       const f = n.faces[this.faceName];
       if (f) {
@@ -1414,7 +1430,8 @@
     const sk = skins[species];
     const mk = sk.hands[gesture] || HANDS[gesture] || HANDS.ball;
     const node = mk(sk.colorsFor ? sk.colorsFor(loadoutFor('you')) : sk.colors, { el, g, blob: (s, f, w) => blob(s, f, w ?? 3), ink: { ...ink, 'stroke-width': 3 }, T, circle, ellipse, pathS, rrect, w: 3 });
-    return el('svg', { viewBox: '-46 -90 92 92', class: 'ico mascot-hand' }, node).outerHTML;
+    // (skin.handIconBox: a box fitted to the species' hands, so the control icons show them big)
+    return el('svg', { viewBox: sk.handIconBox || '-46 -90 92 92', class: 'ico mascot-hand' }, node).outerHTML;
   }
   const handIcon = (gesture) => `<span class="mascot-hand-wrap" data-mascot-hand="${gesture}">${handSvg(gesture)}</span>`;
 

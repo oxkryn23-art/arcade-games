@@ -246,7 +246,9 @@ fs.writeFileSync(path.join(KIT, 'references', 'STYLE.md'), STYLE_MD);
 BATCHES.forEach((b, i) => fs.writeFileSync(path.join(KIT, 'prompts', `${b.id}.md`), batchFile(b, i)));
 const index = ['# Prompt index', '', `${BATCHES.length} batches, each in its own ChatGPT chat, in this order. Every batch file holds the item sheet prompt (green screen, the four views) and a fit check on the character. Everything is saved to \`output/\`.`, '',
   '| # | File | Items | Attach | Saves |', '|---|---|---|---|---|',
-  ...BATCHES.map((b, i) => `| ${i + 1} | [\`${b.id}.md\`](${b.id}.md) | ${b.items.map(([id]) => `\`${id}\``).join(', ')} | ${ATTACH[b.slot].join(', ')} | \`${b.id}.png\` + \`${b.id}-fit.png\` |`), ''].join('\n');
+  ...BATCHES.map((b, i) => `| ${i + 1} | [\`${b.id}.md\`](${b.id}.md) | ${b.items.map(([id]) => `\`${id}\``).join(', ')} | ${ATTACH[b.slot].join(', ')} | \`${b.id}.png\` + \`${b.id}-fit.png\` |`), '',
+  // (written by hand, not generated: the hand sheet has its own layout)
+  'Also: [`hands-1.md`](hands-1.md), the five-finger hand sheet (the layout of `references/current/hands-4-fingers.png`), saved as `output/hands-1.png` and imported over `art-source/characters/06-hands-gloves.png`.', ''].join('\n');
 fs.writeFileSync(path.join(KIT, 'prompts', 'INDEX.md'), index);
 fs.writeFileSync(path.join(KIT, 'output', 'README.txt'), 'Sem ukladej vysledky z ChatGPT: <davka>.png a <davka>-fit.png (nazvy jsou v prompts/INDEX.md).\n');
 console.log(`wrote ${BATCHES.length} batches to ${path.relative(process.cwd(), KIT)}`);

@@ -554,7 +554,7 @@
   // The clothes (outfit, hat, shoes) step through their items with arrows, as in the original game's customizer.
   let cust = null;
   const OPT_KINDS = ['skin', 'hair', 'hairColor', 'shirt'];
-  const CYCLE_KINDS = ['outfit', 'hat', 'feet'];
+  const CYCLE_KINDS = ['outfit', 'feet'];
   const itemLabel = (kind, id) => window.VersoCosmetics?.ITEMS?.[kind]?.find((i) => i.id === id)?.label || id;
   function swatch(kind, id) {
     if (kind === 'hair') return `<span class="opt-hair">${DuelFigures.avatarSvg({ ...cust.draft, hair: id }, 'you', { face: 'smile' })}</span>`;

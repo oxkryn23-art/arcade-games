@@ -11,7 +11,7 @@
     hairColor: ['hair-1', 'hair-2', 'hair-3', 'hair-4', 'hair-5', 'hair-6'],
     shirt: ['shirt-1', 'shirt-2', 'shirt-3', 'shirt-4', 'shirt-5', 'shirt-6', 'shirt-7', 'shirt-8'],
     // the clothes (the human clothes kit, mascots/cosmetics.js ITEMS: the same ids in the same order)
-    hat: ['none', 'cap', 'beanie', 'bucket', 'cowboy', 'headband'],
+    hat: ['none'],   // (no hats: the owner dropped them)
     outfit: ['tee', 'stripedtee', 'polo', 'jersey', 'aloha', 'ringer', 'hoodie', 'denim', 'sweater', 'flannel', 'tracktop', 'bomber', 'leather', 'puffer', 'raincoat', 'blazer', 'overalls', 'mechanic', 'pajamas', 'tracksuit', 'western'],
     feet: ['natural', 'sneakers', 'hightops', 'loafers', 'chelsea', 'runners', 'cleats', 'cowboyboots', 'rainboots', 'slippers', 'skate'],
   };

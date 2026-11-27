@@ -13,3 +13,5 @@
 | 7 | [`hair-1.md`](hair-1.md) | `short`, `crop`, `buzz`, `spiky` | people/head-shapes.png, current/hair.png, current/people.png, palette.png | `hair-1.png` + `hair-1-fit.png` |
 | 8 | [`hair-2.md`](hair-2.md) | `curly`, `long`, `bun`, `ponytail` | people/head-shapes.png, current/hair.png, current/people.png, palette.png | `hair-2.png` + `hair-2-fit.png` |
 | 9 | [`hats-1.md`](hats-1.md) | `cap`, `beanie`, `bucket`, `cowboy`, `headband` | people/head-shapes.png, current/hair.png, current/people.png, palette.png | `hats-1.png` + `hats-1-fit.png` |
+
+Also: [`hands-1.md`](hands-1.md), the five-finger hand sheet (the layout of `references/current/hands-4-fingers.png`), saved as `output/hands-1.png` and imported over `art-source/characters/06-hands-gloves.png`.

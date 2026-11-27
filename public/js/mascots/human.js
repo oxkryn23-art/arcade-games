@@ -233,14 +233,17 @@
     headSide: 6, headUp: 82, marksShift: 0,
   };
   const NECK_W = 30;
-  // The head with its neck (behind the head, down to the body's top), its hair layers and what the hair needs to be
-  // rebuilt when the head turns (turnHead).
+  // The neck (head space): drawn by the rig BEHIND the body and the garment (skin.neck), from under the chin down past
+  // the body's top, so it goes into the collar; the rig hides the body's top outline across it (skin.neckW).
+  function neck(c, h) {
+    const x = NECK_W / 2, y0 = f1(R * 0.55), y1 = SKEL.headUp + 24;
+    return h.g({ class: 'rig-neck' },
+      h.el('rect', { x: -x, y: y0, width: NECK_W, height: f1(y1 - y0), fill: c.skin }),
+      h.el('path', { d: `M${-x} ${y0}V${y1}M${x} ${y0}V${y1}`, fill: 'none', ...h.ink }));
+  }
+  // The head, its hair layers and what the hair needs to be rebuilt when the head turns (turnHead).
   function headWithNeck(c, h) {
     const hp = head(c, h);
-    const x = NECK_W / 2, y0 = f1(R * 0.55), y1 = SKEL.headUp + 2;
-    hp.back.prepend(h.g({ class: 'rig-neck' },
-      h.el('rect', { x: -x, y: y0, width: NECK_W, height: f1(y1 - y0), fill: c.skin }),
-      h.el('path', { d: `M${-x} ${y0}V${y1}M${x} ${y0}V${y1}`, fill: 'none', ...h.ink })));
     hp.c = c; hp.h = h; hp.hairKey = null;
     return hp;
   }
@@ -305,10 +308,11 @@
     lookKey: (l) => [l.skin, l.hair, l.hairColor, l.shirt].join(':'),
     skel: SKEL,
     armW: 15, legW: 15, foot: [27, 13],
+    handIconBox: '-27 -52 54 54',   // the control icons: the box fitted to the hands (the wrist at 0, the fingers up)
     handSkin: [0xD4, 0x9A, 0x6E],   // the hand sheet's skin (the RPS hand sprites, recolored to the player's skin by the rig)
     tail: null,
     avatarBox: 104,
-    head: headWithNeck, turnHead: turnHuman,
+    head: headWithNeck, turnHead: turnHuman, neck, neckW: NECK_W,
     faces, hands,
   });
 })();

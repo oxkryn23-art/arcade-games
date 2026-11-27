@@ -254,7 +254,7 @@ body[data-view="match"] > .topbar { flex: none; }
   flex: 0 0 auto; width: auto; min-width: 104px; max-width: 168px; min-height: 0; padding: 8px 12px 9px;
   flex-direction: column; gap: 3px; border-radius: 22px; font-size: 15px;
 }
-:root .match .ctl-icon { width: 50px; height: 50px; }
+:root .match .ctl-icon { width: 60px; height: 60px; }
 /* the panel in the bottom-right corner (Penalty, def.controls = 'corner'), a little more compact */
 #viewMatch[data-ctl="corner"] .controls { padding-right: 16px; }
 :root #viewMatch[data-ctl="corner"] .controls .scene-controls { margin: 0 0 0 auto; }
@@ -467,7 +467,7 @@ body[data-view="match"] > .topbar { flex: none; }
     flex-direction: row; min-width: 0; max-width: none; min-height: 46px; padding: 4px 12px 5px 8px; gap: 6px;
     font-size: 13.5px; border-radius: 16px; border-width: 2px; box-shadow: 0 3px 0 var(--ledge-c);
   }
-  :root .match .ctl-icon { width: 30px; height: 30px; }
+  :root .match .ctl-icon { width: 36px; height: 36px; }
   .match .ctl-lock { width: 24px; height: 24px; top: -9px; right: -6px; border-width: 2px; padding: 3px; }
   #viewMatch[data-ctl="corner"] .controls { padding-right: 8px; }
   :root #viewMatch .scene-controls.penalty .ctl-chip { font-size: 14px; padding: 3px 12px 4px; gap: 8px; }
