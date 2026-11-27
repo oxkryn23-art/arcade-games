@@ -5,6 +5,7 @@
   const K = window.DuelKit;
   const { el, g } = K;
   const T = (n) => `var(--${n})`;
+  const f1 = (n) => Math.round(n * 10) / 10;
   const ink = (w = 4) => ({ stroke: T('outline'), 'stroke-width': w, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
   const line = (d, w = 3.5) => el('path', { d, fill: 'none', ...ink(w) });
 
@@ -24,8 +25,17 @@
     const cylFace = g({ transform: 'translate(10 -13)' }, cylSpin);
     cylFace.style.display = 'none';
     const S = 1.55;   // drawn at hand scale, shown a bit bigger (about a head wide, like props-ref)
-    const root = g({ class: 'prop-revolver', transform: `scale(${S})` }, grip, guard, barrel, sight, frame, hammer, cylSide, cylFace);
-    return { root, cylSide, cylFace, cylSpin, muzzle: [60 * S, -15.5 * S], length: 60 * S };
+    // The gun is seen from its near side and held by the far hand (overHand: the rig draws it over the hand, so the
+    // wrist and the back of the hand hide behind the grip): only the fingertips show, wrapped over the grip's front
+    // edge, in the holder's skin (skin: the rig fills them).
+    const front = (y) => 8 - ((y + 6) * 6) / 28;   // the grip's front edge at height y
+    const tips = [0, 1, 2, 3].map((i) => {
+      const y = -1 + i * 5.4, x = front(y);
+      return el('rect', { x: f1(x - 5.5), y: f1(y - 2.6), width: 10, height: 5.2, rx: 2.6, ...ink(2.2) });
+    });
+    const fingers = g({ class: 'prop-fingers' }, ...tips);
+    const root = g({ class: 'prop-revolver', transform: `scale(${S})` }, grip, guard, barrel, sight, frame, hammer, cylSide, cylFace, fingers);
+    return { root, cylSide, cylFace, cylSpin, muzzle: [60 * S, -15.5 * S], length: 60 * S, overHand: true, skin: tips };
   }
 
   // Shotgun: the rear hand holds the grip at the origin, the front hand the pump (pump). Barrel along +x.
@@ -37,8 +47,14 @@
     const pump = g({}, el('rect', { x: 58, y: -4, width: 32, height: 12, rx: 5, fill: T('wood'), ...ink(3.5) }), line('M66 -2L66 6M73 -2L73 6M80 -2L80 6', 2.5));
     const guard = el('path', { d: 'M10 2Q10 12 20 10Q22 6 20 2', fill: 'none', ...ink(3.5) });
     const S = 1.4;
-    const root = g({ class: 'prop-shotgun', transform: `scale(${S})` }, stock, guard, body, barrel, pump);
-    return { root, muzzle: [124 * S, -8 * S], pump: [74 * S, 2 * S], length: 124 * S };
+    // held like the revolver (overHand): the far hand behind the stock's wrist, its fingertips wrapped up over the
+    // wrist's lower edge ((4,4) to (-20,12)) on the near side, in the holder's skin
+    const tips = [0.12, 0.38, 0.64].map((t) => {
+      const x = 4 - 24 * t, y = 4 + 8 * t;
+      return el('rect', { x: -2.4, y: -6.5, width: 4.8, height: 9, rx: 2.4, transform: `translate(${f1(x)} ${f1(y)}) rotate(-18.4)`, ...ink(2.2) });
+    });
+    const root = g({ class: 'prop-shotgun', transform: `scale(${S})` }, stock, guard, body, barrel, pump, g({ class: 'prop-fingers' }, ...tips));
+    return { root, muzzle: [124 * S, -8 * S], pump: [74 * S, 2 * S], length: 124 * S, overHand: true, skin: tips };
   }
 
   // Football: center at the origin, radius 20.

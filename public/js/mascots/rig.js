@@ -715,6 +715,12 @@
       a.prop.dataset.prop = name || '';
       a.propNode = name ? propNode(name) : null;
       if (a.propNode) a.propInner.append(a.propNode.root);
+      // a prop held in front of its hand (overHand: a gun seen from its near side, the hand behind its grip with the
+      // fingertips wrapped over it: the prop's skin parts take the character's skin), else the hand over the prop
+      // (only moved when it has to: the tests' light DOM has no insertBefore)
+      if (a.propNode?.overHand) a.root.append(a.prop);
+      else if (a.root.lastChild === a.prop) { if (a.root.insertBefore) a.root.insertBefore(a.prop, a.hand); else a.root.append(a.hand); }
+      a.propNode?.skin?.forEach((e) => { e.style.fill = this.c.skin; });
       this.apply(this.cur, performance.now());
       return this;
     }
