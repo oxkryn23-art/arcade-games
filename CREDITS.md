@@ -1,10 +1,10 @@
 # Credits
 
 The scenes, the props, the icons for the game controls, the favicon, the result card and the covers are drawn in code
-in this repository. The character sheets in `art-source/characters/` (heads, hairstyles, faces, body, shoes, hands)
-and the Penalty stadium and fans were generated for this project with ChatGPT image generation from the project's own
-style and layout references; the characters are traced into vector paths (`tools/trace-figures.js`), the stadium and
-the fans are used as pictures (`public/art/`, `tools/import-stadium.js`). The third-party assets below are bundled
+in this repository. The characters (bodies, heads, hair, faces) are drawn in code. The
+character sheets in `art-source/characters/` and the Penalty stadium and fans were generated for this project with
+ChatGPT image generation from the project's own style and layout references; the hands and the shoes are traced from
+them into vector paths (`tools/trace-figures.js`), the stadium and the fans are used as pictures (`public/art/`, `tools/import-stadium.js`). The third-party assets below are bundled
 with their licenses.
 
 ## Fonts

@@ -1,11 +1,11 @@
-// Character rig: flat-vector cartoon people (plain SVG, no images).
-// Load after scenes/kit.js, figures/avatar.js and figures/figure-art.js.
+// Character rig: rubber-hose cartoon people drawn in code (plain SVG), built the way the original game built its
+// mascots: an egg-shaped body (the T-shirt, the trousers band at the bottom), a big round head sitting on it (the human
+// skin, figures/human.js: ears, hair, faces with big eyes), noodle legs and arms.
+// Load after scenes/kit.js, figures/avatar.js, figures/figure-art.js and figures/human.js.
 //
-// A character is built from layered parts: legs + shoes, the head (behind the torso, so the collar runs over the neck),
-// the torso (shirt + trousers band) and two NOODLE arms (one cubic Bezier each, no elbows) ending in hands that can
-// hold a prop. The heads (per hairstyle and view), the faces, the hands, the shoes and the torso's outline are the
-// character sheets in art-source/characters/ traced into paths (tools/trace-figures.js -> figure-art.js), each area a
-// color class the rig fills with the player's tokens; the limbs, the sleeves and the trousers band are drawn here. Character space: the origin is on the ground between the feet, y grows down, about 330 units tall.
+// A character is built from layered parts: legs + shoes, the body, the head (hair behind, ears, the head, the face,
+// hair in front) and two NOODLE arms (one cubic Bezier each, no elbows) ending in hands that can hold a prop. The
+// hands and the shoes are the ChatGPT hand and shoe sheets traced into paths (tools/trace-figures.js -> figure-art.js). Character space: the origin is on the ground between the feet, y grows down, about 330 units tall.
 // Profile views face right; a mirrored rig (flip) faces left.
 //
 // Poses are data (see REST / POSES): limb endpoints + body/head transforms. rig.to(pose, ms) interpolates every number
@@ -37,21 +37,21 @@
   // ---------------- the skeleton (character units, y down, origin on the ground) ----------------
   // The hip line, the neck, the shoulder line, the belly, the bottom of the torso; torso half-widths (front /
   // profile); the head center sits headUp above the neck; R = the head radius.
-  // (the proportions of the model sheet: the head 126 units from its top to the neck, the torso 92, the legs 86)
+  // (the original game's mascot proportions; the body is an egg: bodyTop = its half-width near the top, bodyRx at the
+  // belly, front / profile)
+  const H = () => window.DuelHuman;
   const S = {
-    hip: -100, neck: -178, shoulder: -163, belly: -116, bottom: -86,
-    hipX: 18, hipXSide: 6, headSide: 6, headUp: 83, R: 58,
+    hip: -74, neck: -178, shoulder: -163, belly: -98, bottom: -58,
+    bodyRx: 46, bodyRxSide: 40, bodyTop: 24, bodyTopSide: 22,
+    hipX: 20, hipXSide: 6, headSide: 6, headUp: 70, R: 70,
   };
-  const SKIN = { id: 'human', skel: S, armW: 15, legW: 22 };
+  const SKIN = { id: 'human', skel: S, armW: 15, legW: 17 };
   const FA = () => window.DuelFigureArt || null;
-  // the traced torso is a little narrower than the model sheet's: widened by TORSO_XK
-  const TORSO_H = S.bottom - S.neck, TORSO_XK = 1.15;
-  // the head's neck stub ends STUB_IN units below the torso's top (negative: above it); a drawn NECK (NECK_W wide)
-  // runs from inside the torso up under the chin, so a head sits on a real neck, the collar over its root
-  const STUB_IN = -8, NECK_W = 22;
+  // the trousers band: the lowest BAND part of the body
+  const BAND = 0.2;
   // the shoes: drawn SHOE_K x their traced size, the sole SOLE_DY below the leg's end (a pose's feet end 10 above the
   // ground)
-  const SHOE_K = 1.08, SOLE_DY = 10;
+  const SHOE_K = 1.3, SOLE_DY = 10;
 
   // ---------------- poses ----------------
   const REST = {
@@ -185,39 +185,34 @@
       u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]];
   }
 
-  // The torso outline in body space (origin at the hip center, y down): the traced T-shirt torso (a soft egg, the
-  // collar on top), blended front -> three-quarter -> side by turn (the back view has its own). torsoPts(turn, back)
-  // gives the outline's points (cached per turn bucket), torso(turn, back) the smooth closed path through them.
+  // The body in body space (origin at the hip center, y down): an egg (the original game's egg), narrower at the top,
+  // widest at the belly, narrowing from front to profile. egg() gives the path, torsoPts(turn) its outline sampled into
+  // points (cached per turn bucket; the arms measure the body's edge on it), torso(turn) the path for a turn.
+  function egg(rxT, rx, top, mid, bot) {
+    const k = 0.56, P = (x, y) => `${f1(x)} ${f1(y)}`;
+    return `M${P(0, top)}C${P(rxT, top)} ${P(rx, mid - (mid - top) * k)} ${P(rx, mid)}`
+      + `C${P(rx, mid + (bot - mid) * k)} ${P(rx * k, bot)} ${P(0, bot)}`
+      + `C${P(-rx * k, bot)} ${P(-rx, mid + (bot - mid) * k)} ${P(-rx, mid)}`
+      + `C${P(-rx, mid - (mid - top) * k)} ${P(-rxT, top)} ${P(0, top)}Z`;
+  }
+  const eggOf = (turn) => {
+    const t = Math.round(clamp(turn) * 20) / 20;
+    return [lerp(S.bodyTop, S.bodyTopSide, t), lerp(S.bodyRx, S.bodyRxSide, t), S.neck - S.hip, S.belly - S.hip, S.bottom - S.hip];
+  };
   const TORSOS = new Map();
-  function torsoPts(turn, back = false) {
-    const key = `${back ? 'b' : ''}${Math.round(clamp(turn) * 20)}`;
+  function torsoPts(turn) {
+    const key = Math.round(clamp(turn) * 20);
     if (TORSOS.has(key)) return TORSOS.get(key);
-    const T = FA()?.torso, t = Math.round(clamp(turn) * 20) / 20, top = S.neck - S.hip;
-    let pts;
-    if (!T) pts = Array.from({ length: 36 }, (_, i) => { const a = -Math.PI / 2 + (i / 36) * Math.PI * 2; return [Math.cos(a) * 0.4, 0.5 + Math.sin(a) * 0.5]; });
-    else if (back) pts = T.back.pts;
-    else {
-      const [A, B, u] = t <= 0.55 ? [T.front.pts, T.three.pts, t / 0.55] : [T.three.pts, T.side.pts, (t - 0.55) / 0.45];
-      pts = A.map((p, i) => [lerp(p[0], B[i][0], u), lerp(p[1], B[i][1], u)]);
-    }
-    const out = pts.map(([x, y]) => [x * TORSO_H * TORSO_XK, top + y * TORSO_H]);
-    out.band = top + (T ? T.front.band : 0.85) * TORSO_H;
+    const [rxT, rx, top, mid, bot] = eggOf(turn), k = 0.56, out = [];
+    const segs = [[[0, top], [rxT, top], [rx, mid - (mid - top) * k], [rx, mid]], [[rx, mid], [rx, mid + (bot - mid) * k], [rx * k, bot], [0, bot]]];
+    for (const c of segs) for (let i = 0; i < 24; i++) out.push(bez(c, i / 24));
+    const right = out.slice();
+    for (let i = right.length - 1; i > 0; i--) out.push([-right[i][0], right[i][1]]);
+    out.band = bot - (bot - top) * BAND;
     TORSOS.set(key, out);
     return out;
   }
-  const PATHS = new Map();
-  function torso(turn, back = false) {
-    const pts = torsoPts(turn, back);
-    if (PATHS.has(pts)) return PATHS.get(pts);
-    const n = pts.length, P = (i) => pts[(i + n) % n];
-    let d = `M${f1(pts[0][0])} ${f1(pts[0][1])}`;
-    for (let i = 0; i < n; i++) {
-      const p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2), k = 1 / 6;
-      d += `C${f1(p1[0] + (p2[0] - p0[0]) * k)} ${f1(p1[1] + (p2[1] - p0[1]) * k)} ${f1(p2[0] - (p3[0] - p1[0]) * k)} ${f1(p2[1] - (p3[1] - p1[1]) * k)} ${f1(p2[0])} ${f1(p2[1])}`;
-    }
-    PATHS.set(pts, `${d}Z`);
-    return `${d}Z`;
-  }
+  const torso = (turn) => egg(...eggOf(turn));
   // The torso's half-width at the height y (body space), measured on its outline (the wider side); -1 above or below
   // it. inTorso(turn, [x, y]): whether a body-space point lies inside the outline.
   function edgeAt(turn, y) {
@@ -376,13 +371,13 @@
   for (const shape of Object.keys(HAND_MID)) Object.defineProperty(HAND_MID, shape, { get: () => handMidOf(shape), enumerable: true });
 
   // ---------------- heads and faces ----------------
-  // A head is the traced drawing of its hairstyle in one of four views (front, three-quarter, side, back; the turned
-  // ones face right and are mirrored for a head turned left); the front and three-quarter heads carry no face, the
-  // expression is drawn over them at their eyes (head.eye = [x, y, scale]); the side and back views keep their own.
-  const HAIR = { short: 'Short', crop: 'Crop', buzz: 'Buzz', spiky: 'Spiky', curly: 'Curly', long: 'Long', bun: 'Bun', ponytail: 'Ponytail' };
+  // The human skin (figures/human.js): the head, the ears, the hair styles and the faces.
+  const HAIR = (window.DuelHuman && window.DuelHuman.HAIR) || { short: 'Short', crop: 'Crop', buzz: 'Buzz', spiky: 'Spiky', curly: 'Curly', long: 'Long', bun: 'Bun', ponytail: 'Ponytail' };
   // neutral, focus, smile, think, grin, joy, oops, sad, meh, shock (expressions.js says which shows when)
   const FACES = Object.fromEntries(['neutral', 'focus', 'smile', 'think', 'grin', 'joy', 'oops', 'sad', 'meh', 'shock'].map((n) => [n, n]));
-  const headView = (ht, back) => (back ? 'back' : Math.abs(ht) < 0.3 ? 'front' : Math.abs(ht) < 0.82 ? 'three' : 'side');
+  const circle = (cx, cy, r) => ['circle', { cx, cy, r }];
+  const ellipse = (cx, cy, rx, ry) => ['ellipse', { cx, cy, rx, ry }];
+  const helpers = (id) => ({ id, el, g, ink, T, circle, ellipse, blob: (shapes, fill, w = OUT) => blobs(shapes, fill, w) });
 
   // ---------------- looks ----------------
   const A = () => window.DuelAvatar;
@@ -442,7 +437,7 @@
         el('rect', { x: -4000, y: -4000, width: 8000, height: 8000, fill: 'white' }), n.armMaskBody);
       n.armMid = g({ class: 'rig-arms-tucked', mask: `url(#${id}-arms)` });
       n.legs = g({}); n.body = g({}); n.head = g({});
-      n.all.append(el('defs', {}, n.armMask), n.armBack, n.legs, n.head, n.body, n.armMid, n.armFront);
+      n.all.append(el('defs', {}, n.armMask), n.armBack, n.legs, n.body, n.head, n.armMid, n.armFront);
       n.flip.append(n.shadow, n.all);
       this.root.append(n.flip);
 
@@ -457,26 +452,29 @@
       n.legs.append(n.leg1.g, n.foot1, n.leg2.g, n.foot2);
       this.feetKey = null;
 
-      // torso: the shirt, the trousers band at the bottom (clipped to the torso), the outline, the collar (the neck
-      // opening) on top
+      // body: the egg in the shirt color, the trousers band at the bottom (clipped to it), the outline on top
       n.clip = el('clipPath', { id: `${id}-body` }, el('path', {}));
       n.bodyPath = el('path', { fill: c.shirt });
       n.pants = el('rect', { x: -80, y: 0, width: 160, height: 60, fill: c.pants, 'clip-path': `url(#${id}-body)` });
       n.belt = el('path', { fill: 'none', ...ink, 'stroke-width': 3.5, 'clip-path': `url(#${id}-body)` });
-      n.collar = el('ellipse', { rx: 11, ry: 4.2, fill: c.skin, ...ink, 'stroke-width': 3.5 });
       n.bodyEdge = el('path', { fill: 'none', ...ink });
-      n.body.append(el('defs', {}, n.clip), n.bodyPath, n.pants, n.belt, n.bodyEdge, n.collar);
+      n.body.append(el('defs', {}, n.clip), n.bodyPath, n.pants, n.belt, n.bodyEdge);
 
-      // head: the traced head of the hairstyle and view, the face over it
+      // head (figures/human.js): hair behind + ears, the head, the face (every expression built once, one shown), the
+      // hair in front
       n.headInner = g({ class: 'rig-head' });
       n.head.append(n.headInner);
-      n.headArt = g({ class: 'rig-hair' });
-      n.faceSlot = g({ class: 'rig-face-slot' });
-      // the neck (drawn per head in dressHead): over the bottom of the drawing's neck stub (its rounded end would cross
-      // the neck), under the chin, exactly as wide as the stub; only its sides are outlined, its foot inside the torso
-      n.neckArt = g({ class: 'rig-neck' });
-      n.headInner.append(n.headArt, n.neckArt, n.faceSlot);
-      this.hairKey = null; this.faceKey = null;
+      const hh = helpers(id);
+      n.hp = H().head(c, hh);
+      n.faces = {};
+      for (const [name, mk] of Object.entries(H().faces)) {
+        const f = mk(c, hh);
+        f.g.style.display = 'none';
+        n.faces[name] = f;
+        n.hp.faceSlot.append(f.g);
+      }
+      n.headInner.append(n.hp.back, n.hp.shape, n.hp.face, n.hp.front);
+      this.hairKey = null;
 
       // arms: outline + fill noodle, the short sleeve (shirt color) over the arm's root, the held prop, the hand
       const arm = (k) => {
@@ -536,8 +534,8 @@
     face(name, force = false) {
       if (!FACES[name]) name = 'neutral';
       if (name === this.faceName && !force) return this;
+      for (const [k, f] of Object.entries(this.n.faces)) f.g.style.display = k === name ? '' : 'none';
       this.faceName = name;
-      this.faceKey = null;
       // place the new face for the current view and gaze right away (with reduced motion no idle frame would, and the
       // face stayed centered, looking at the camera, until the next tween)
       if (this.cur && !this.dead) this.apply(this.cur, performance.now());
@@ -612,38 +610,39 @@
       if (this.tw || (this.idleOn && !K.reduced()) || this.blinking) this.apply(this.cur, now);
     }
 
-    // The head drawing for a view (rebuilt when the look or the view changes) and the face over it.
-    dressHead(view) {
-      const key = `${this.look.hair}:${this.look.hairColor}:${this.look.skin}:${this.look.shirt}:${view}`;
-      const art = FA()?.heads?.[this.look.hair]?.[view] || FA()?.heads?.short?.[view];
+    // The hair for a view (rebuilt when the look, the back view or the quantized head turn changes; a head turned left
+    // draws the right-facing hair mirrored).
+    dressHead(turn, back) {
+      const q = Math.round(Math.abs(turn) * 10) / 10;
+      const key = `${this.look.hair}:${back ? 1 : 0}:${q}`;
       if (key !== this.hairKey) {
-        this.hairKey = key; this.faceKey = null;
-        this.n.headArt.innerHTML = '';
-        if (art) this.n.headArt.append(artPiece(art, classFill(this.c)));
-        else this.n.headArt.append(el('circle', { cx: 0, cy: -68, r: S.R, fill: this.c.skin, ...ink }));
-        const hw = art?.neck || NECK_W / 2 + OUT / 2, nx = hw - OUT / 2, ny = -5, nb = 14 - STUB_IN;
-        this.n.neckArt.innerHTML = '';
-        this.n.neckArt.append(el('rect', { x: f1(-nx), y: ny, width: f1(nx * 2), height: nb - ny, fill: this.c.skin }),
-          el('path', { d: `M${f1(-nx)} ${ny}V${nb}M${f1(nx)} ${ny}V${nb}`, fill: 'none', ...ink }));
+        this.hairKey = key;
+        const hp = this.n.hp, hr = H().hair(this.look.hair, q, back, this.c, helpers(`rig${this.id}`));
+        hp.hairBack.innerHTML = ''; hp.hairFront.innerHTML = '';
+        hp.hairBack.append(...hr.behind); hp.hairFront.append(...hr.front);
       }
-      const fk = `${view}:${this.faceName}`;
-      if (fk === this.faceKey) return;
-      this.faceKey = fk;
-      const slot = this.n.faceSlot, face = art?.eye && FA()?.faces?.[view]?.[this.faceName || 'neutral'];
-      slot.innerHTML = '';
-      if (face) slot.append(artPiece(face, classFill(this.c), { transform: `translate(${art.eye[0]} ${art.eye[1]}) scale(${art.eye[2]})` }));
+      const m = turn < 0 && !back ? 'scale(-1 1)' : '';
+      this.n.hp.hairBack.setAttribute('transform', m); this.n.hp.hairFront.setAttribute('transform', m);
     }
 
     // --- drawing a pose ---
     apply(p0, now) {
       const n = this.n;
       const p = { ...p0 };
+      let blink = 1;
       if (this.idleOn && !K.reduced()) {
         const t = (now - this.t0) / 1000;
         p.bsy = p.bsy * (1 + 0.012 * Math.sin(t * 2.4));
         p.hy = p.hy - 1.4 * Math.sin(t * 2.4);
         const w = (i) => 0.06 * Math.sin(t * 3.1 + i * 1.7);
         p.a1 = [p.a1[0], p.a1[1], p.a1[2] + w(1)]; p.a2 = [p.a2[0], p.a2[1], p.a2[2] + w(2)];
+        const f = n.faces[this.faceName];
+        if (f && f.blink !== false) {
+          if (now > this.blinkAt) { this.blinkStart = now; this.blinkAt = now + 2200 + Math.random() * 3200; }
+          const bt = (now - (this.blinkStart || -1e9)) / 140;
+          this.blinking = bt < 1;
+          if (bt < 1) blink = Math.max(0.08, Math.abs(1 - 2 * bt));
+        }
       }
       const turn = clamp(p.turn), back = p.back >= 0.5;
       if (p.sit) { const dy = S.bottom * p.sit; for (const k of ['a1', 'a2', 'l1', 'l2']) p[k] = [p[k][0], p[k][1] + dy, p[k][2]]; }
@@ -658,16 +657,12 @@
       const a = p.brot * D2R, ca = Math.cos(a), sa = Math.sin(a);
       const B = ([x, y]) => { const yy = y * p.bsy; return [p.bx + x * ca - yy * sa, S.hip + p.by + x * sa + yy * ca]; };
       n.body.setAttribute('transform', `translate(${f1(p.bx)} ${f1(S.hip + p.by)}) rotate(${f1(p.brot)}) scale(1 ${f1(p.bsy * 1000) / 1000})`);
-      const d = torso(turn, back), tp = torsoPts(turn, back);
+      const d = torso(turn), tp = torsoPts(turn);
       n.bodyPath.setAttribute('d', d); n.clip.firstChild.setAttribute('d', d); n.bodyEdge.setAttribute('d', d);
       // the trousers band from the band line down, its top a gentle curve
       const by = tp.band, bw = edgeAt(turn, by) + 6;
       n.pants.setAttribute('y', f1(by));
       n.belt.setAttribute('d', `M${f1(-bw)} ${f1(by - 1)}Q0 ${f1(by + 4)} ${f1(bw)} ${f1(by - 1)}`);
-      // the collar: a small opening in the skin color on top of the torso, the neck (the head's stub) behind it
-      const top = S.neck - S.hip;
-      n.collar.setAttribute('cx', f1(back ? 0 : turn * 3)); n.collar.setAttribute('cy', f1(top + 3));
-      n.collar.setAttribute('rx', f1(11 - 3 * turn));
 
       // legs + shoes
       const hipX = lerp(S.hipX, S.hipXSide, turn);
@@ -681,9 +676,21 @@
       // head
       const neck = B([lerp(0, S.headSide, turn), S.neck - S.hip]);
       n.head.setAttribute('transform', `translate(${f1(neck[0] + p.hx)} ${f1(neck[1] + p.hy)}) rotate(${f1(p.brot + p.hrot)})`);
+      n.headInner.setAttribute('transform', `translate(0 ${-S.headUp})`);
       const ht = clamp(turn + p.ht, -1, 1);
-      n.headInner.setAttribute('transform', `translate(0 ${STUB_IN})${ht < 0 && !back ? ' scale(-1 1)' : ''}`);
-      this.dressHead(headView(ht, back));
+      H().turnHead(n.hp, ht, back);
+      this.dressHead(ht, back);
+      const f = n.faces[this.faceName];
+      if (f && !back) {
+        const look = f.look || [0, 0], lx = p.lx || look[0], ly = p.ly || look[1];
+        f.pupils?.forEach((pu) => pu.setAttribute('transform', `translate(${f1(lx * (f.lookR || 4))} ${f1(ly * (f.lookR || 4))})`));
+        f.eyes?.forEach((e) => e.setAttribute('transform', blink < 1 ? `translate(0 ${f1(e.cy || 0)}) scale(1 ${f1(blink * 100) / 100}) translate(0 ${f1(-(e.cy || 0))})` : ''));
+        // a near profile: the far eye (on the side the face turns to) is behind the nose
+        if (f.eyes?.length === 2) {
+          const far = f.eyes[ht >= 0 ? 1 : 0], near = f.eyes[ht >= 0 ? 0 : 1];
+          far.style.display = Math.abs(ht) > 0.86 ? 'none' : ''; near.style.display = '';
+        }
+      }
 
       // arms (ARMS): a turned view draws the near arm (a1) in front under a short sleeve and the far arm (a2) behind
       // the body; a front / back view tucks both behind the torso (an arm whose hand is in front of the body is drawn
@@ -815,7 +822,7 @@
     let svg;
     if (body) svg = K.el('svg', { viewBox: '-170 -352 340 372', class: 'figure-avatar-svg figure-figure-svg', 'aria-hidden': 'true' });
     else {
-      const cy = S.neck - S.headUp + 6, size = 206;   // room for the widest hair (curly) and the tallest (spiky, bun)
+      const cy = S.neck - S.headUp + 4, size = 206;   // room for the widest hair (curly) and the tallest (spiky, bun)
       svg = K.el('svg', { viewBox: `${-size / 2} ${f1(cy - size / 2)} ${size} ${size}`, class: 'figure-avatar-svg', 'aria-hidden': 'true' });
       r.n.shadow.remove(); r.n.legs.remove(); r.n.armBack.remove(); r.n.armMid.remove(); r.n.armFront.remove();
     }
